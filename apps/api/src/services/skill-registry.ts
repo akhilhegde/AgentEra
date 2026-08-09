@@ -14,7 +14,7 @@ const skills: Skill[] = [
     category: "Career",
     price: "0.01",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/resume-review",
     inputSchema: {
       type: "text-area",
@@ -37,7 +37,7 @@ const skills: Skill[] = [
     category: "Design",
     price: "0.02",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/logo-design",
     inputSchema: {
       type: "text-area",
@@ -60,7 +60,7 @@ const skills: Skill[] = [
     category: "Development",
     price: "0.01",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/code-review",
     inputSchema: {
       type: "text-area",
@@ -83,7 +83,7 @@ const skills: Skill[] = [
     category: "Productivity",
     price: "0.03",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/ppt-generator",
     inputSchema: {
       type: "text-area",
@@ -106,7 +106,7 @@ const skills: Skill[] = [
     category: "Research",
     price: "0.02",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/research",
     inputSchema: {
       type: "text-area",
@@ -129,7 +129,7 @@ const skills: Skill[] = [
     category: "Career",
     price: "0.01",
     currency: "USDC",
-    provider: "AgentHub Labs",
+    provider: "AgentEra Labs",
     endpoint: "/api/skills/interview-prep",
     inputSchema: {
       type: "text-area",

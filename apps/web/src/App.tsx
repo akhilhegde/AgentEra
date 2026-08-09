@@ -1,26 +1,39 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Navbar } from "./components/Navbar";
-import { LandingPage } from "./pages/LandingPage";
-import { MarketplacePage } from "./pages/MarketplacePage";
-import { SkillPage } from "./pages/SkillPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { DevelopersPage } from "./pages/DevelopersPage";
-import { DemoPage } from "./pages/DemoPage";
-import { AgentPage } from "./pages/AgentPage";
+import React, { useState } from 'react';
+import Topline from './components/Topline';
+import Header from './components/Header';
+import Hero from './components/Hero';
+import Stats from './components/Stats';
+import Marketplace from './components/Marketplace';
+import AgentMode from './components/AgentMode';
+import CreatorCTA from './components/CreatorCTA';
+import Footer from './components/Footer';
+import Toast from './components/Toast';
 
 export default function App() {
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setToastVisible(true);
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
+
   return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/marketplace" element={<MarketplacePage />} />
-        <Route path="/skill/:id" element={<SkillPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/developers" element={<DevelopersPage />} />
-        <Route path="/agent" element={<AgentPage />} />
-        <Route path="/demo" element={<DemoPage />} />
-      </Routes>
-    </BrowserRouter>
+    <div className="app" id="top">
+      <Topline />
+      <Header onToast={showToast} />
+      <main>
+        <Hero />
+        <Stats />
+        <Marketplace onToast={showToast} />
+        <AgentMode onToast={showToast} />
+        <CreatorCTA onToast={showToast} />
+      </main>
+      <Footer />
+      <Toast message={toastMessage} visible={toastVisible} />
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Loader2, AlertCircle, Sparkles, ShieldCheck, Cpu, ArrowRight } from "lucide-react";
 import { fetchSkill, executeSkill, type Skill, type SkillExecutionResponse } from "../services/api";
 import { TransactionReceipt } from "../components/TransactionReceipt";
+import { ConfirmPaymentModal } from "../components/ConfirmPaymentModal";
 import { usePaymentStore } from "../stores/payment.store";
 import ReactMarkdown from "react-markdown";
 
@@ -33,6 +34,7 @@ export function SkillPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [result, setResult] = useState<SkillExecutionResponse | null>(null);
   const [error, setError] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const addPayment = usePaymentStore((s) => s.addPayment);
 
   useEffect(() => {
@@ -183,7 +185,7 @@ export function SkillPage() {
           )}
 
           <button
-            onClick={handleExecute}
+            onClick={() => setShowConfirmModal(true)}
             disabled={loading || !input.trim()}
             className="glow-btn w-full mt-5 py-3 text-base flex items-center justify-center gap-2 font-semibold"
           >
@@ -197,6 +199,15 @@ export function SkillPage() {
               </>
             )}
           </button>
+
+          {showConfirmModal && (
+            <ConfirmPaymentModal
+              skill={skill}
+              input={input}
+              onClose={() => setShowConfirmModal(false)}
+              onConfirmPay={handleExecute}
+            />
+          )}
 
           <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
