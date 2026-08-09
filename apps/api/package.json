@@ -1,0 +1,31 @@
+{
+  "name": "@agenthub/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --import ./src/env.ts src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@agenthub/shared": "*",
+    "@google/genai": "^1.0.0",
+    "@hono/node-server": "^1.13.0",
+    "@x402-avm/avm": "^2.6.1",
+    "@x402-avm/core": "^2.6.1",
+    "@x402-avm/hono": "^2.6.1",
+    "@x402/avm": "^2.21.0",
+    "@x402/fetch": "^2.21.0",
+    "algosdk": "^3.6.0",
+    "dotenv": "^16.4.0",
+    "hono": "^4.6.0",
+    "openai": "^4.70.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

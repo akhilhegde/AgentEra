@@ -1,0 +1,66 @@
+// ===========================================
+// API Client — Frontend service layer
+// ===========================================
+
+const API_BASE = "/api";
+
+export interface Skill {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  price: string;
+  currency: string;
+  provider: string;
+  endpoint: string;
+  inputSchema: { type: string; label: string; placeholder: string; maxLength?: number };
+  outputSchema: { type: string };
+  rating: number;
+  usageCount: number;
+  status: string;
+  icon: string;
+}
+
+export interface SkillExecutionResponse {
+  success: boolean;
+  skill: string;
+  result: { content: string; format: string };
+  payment: { status: string; network: string; amount: string; currency: string };
+  transactionId: string;
+  explorerUrl: string;
+}
+
+export interface ErrorResponse {
+  success: false;
+  error: string;
+  code?: string;
+}
+
+/** Fetch all skills from the registry */
+export async function fetchSkills(): Promise<Skill[]> {
+  const res = await fetch(`${API_BASE}/skills`);
+  const data = await res.json();
+  return data.skills || [];
+}
+
+/** Fetch a single skill by ID */
+export async function fetchSkill(id: string): Promise<Skill | null> {
+  const res = await fetch(`${API_BASE}/skills/${id}`);
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.skill || null;
+}
+
+/** Execute a skill via the payment proxy */
+export async function executeSkill(
+  skillId: string,
+  input: string
+): Promise<SkillExecutionResponse | ErrorResponse> {
+  const res = await fetch(`${API_BASE}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skillId, input }),
+  });
+  return res.json();
+}
