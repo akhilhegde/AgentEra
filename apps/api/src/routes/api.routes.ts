@@ -224,6 +224,95 @@ apiRoutes.post("/execute-with-payment", async (c) => {
 // Public Config
 // ============================
 
+/** GET /api/transactions — Fetch AgentHub transactions for a wallet */
+apiRoutes.get("/transactions", async (c) => {
+  const walletAddress = c.req.query("wallet");
+  if (!walletAddress) {
+    return c.json({ success: false, error: "wallet parameter is required" } as ErrorResponse, 400);
+  }
+
+  try {
+    const url = `https://testnet-idx.4160.nodely.dev/v2/accounts/${walletAddress}/transactions?asset-id=${x402Config.usdcAsaId}&tx-type=axfer`;
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (!data.transactions) {
+      return c.json({ success: true, transactions: [] });
+    }
+
+    const txs = data.transactions
+      .filter((tx: any) => {
+        // Must be a transfer to our receiver address
+        const receiver = tx["asset-transfer-transaction"]?.receiver;
+        return receiver === x402Config.receiverAddress;
+      })
+      .map((tx: any) => {
+        const amountMicro = tx["asset-transfer-transaction"]?.amount || 0;
+        const amount = (Number(amountMicro) / 1000000).toFixed(2);
+        
+        let skillId = "unknown";
+        let skillName = "Unknown Skill";
+        let category = "Unknown";
+        
+        // Parse the note field if it exists
+        if (tx.note) {
+          try {
+            // Note is base64 encoded by the indexer
+            const noteText = Buffer.from(tx.note, "base64").toString("utf-8");
+            if (noteText.startsWith("agenthub:")) {
+              skillId = noteText.replace("agenthub:", "").trim();
+              const skill = getSkillById(skillId) || getSkillBySlug(skillId);
+              if (skill) {
+                skillName = skill.name;
+                category = skill.category;
+              }
+            }
+          } catch (e) {
+             console.error("Error parsing tx note:", e);
+          }
+        }
+        
+        // Fallback guess by price if still unknown
+        if (skillId === "unknown") {
+            const skills = getAllSkills();
+            const matchedSkill = skills.find(s => Number(s.price).toFixed(2) === amount);
+            if (matchedSkill) {
+               skillId = matchedSkill.id;
+               skillName = matchedSkill.name;
+               category = matchedSkill.category;
+            }
+        }
+
+        return {
+          skillId,
+          skillName,
+          category,
+          amount,
+          currency: "USDC",
+          assetId: x402Config.usdcAsaId,
+          txId: tx.id,
+          status: "confirmed",
+          network: "algorand-testnet",
+          timestamp: new Date(tx["round-time"] * 1000).toISOString(),
+          from: tx.sender,
+          to: tx["asset-transfer-transaction"]?.receiver,
+        };
+      });
+
+    return c.json({ success: true, transactions: txs });
+  } catch (error: any) {
+    console.error("Error fetching transactions:", error);
+    return c.json(
+      { success: false, error: error.message || "Failed to fetch transactions" } as ErrorResponse,
+      500
+    );
+  }
+});
+
+// ============================
+// Public Config
+// ============================
+
 /** GET /api/config/public — Expose non-secret config */
 apiRoutes.get("/config/public", (c) => {
   return c.json({

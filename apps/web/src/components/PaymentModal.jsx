@@ -141,7 +141,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
 
       let txId;
       try {
-        txId = await sendUsdc(address, config.receiverAddress, skill.price.toString());
+        txId = await sendUsdc(address, config.receiverAddress, skill.price.toString(), skill.id);
       } catch (err) {
         currentSteps = [
           ...currentSteps.slice(0, 2),

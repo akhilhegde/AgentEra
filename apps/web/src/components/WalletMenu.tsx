@@ -35,7 +35,7 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
     try {
       await optInToUsdc(address);
       useWalletStore.getState().setBalances(algoBalance || "0", usdcBalance || "0", true);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
       alert(e?.message || "Failed to opt into USDC. Did you cancel the transaction in Pera Wallet?");
     } finally {

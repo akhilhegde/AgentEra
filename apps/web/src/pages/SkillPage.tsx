@@ -110,7 +110,7 @@ export function SkillPage() {
       if (parseFloat(algoBalance || '0') < 0.002) throw new Error('Insufficient ALGO: You need ALGO to pay transaction fees.');
 
       setExecutionStep(2); // Waiting for Pera Approval
-      const txId = await sendUsdc(address, config.receiverAddress, skill.price.toString());
+      const txId = await sendUsdc(address!, config.receiverAddress, skill.price.toString(), skill.id);
       
       setExecutionStep(3); // Settled, executing skill
       const response = await executeSkillWithPayment(skill.id, input, txId, fileData);

@@ -4,7 +4,7 @@ import { useWalletStore } from '../stores/wallet.store';
 import { connectWallet } from '../services/peraWallet';
 import WalletMenu from './WalletMenu';
 
-export default function Header({ onToast }) {
+export default function Header({ onToast, onViewChange, currentView }) {
   const { isConnected, address, isConnecting } = useWalletStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [walletMenuOpen, setWalletMenuOpen] = useState(false);
@@ -31,6 +31,16 @@ export default function Header({ onToast }) {
 
   const scrollToSection = (id) => {
     setMenuOpen(false);
+    if (currentView !== 'home') {
+      onViewChange('home');
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      return;
+    }
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -50,6 +60,7 @@ export default function Header({ onToast }) {
         <button onClick={() => scrollToSection('marketplace')}>Marketplace</button>
         <button onClick={() => scrollToSection('agent')}>Agent Mode</button>
         <button onClick={() => scrollToSection('creators')}>Creators</button>
+        <button onClick={() => { setMenuOpen(false); onViewChange('transactions'); }} className={currentView === 'transactions' ? 'active text-indigo-400' : ''}>History</button>
       </nav>
 
       <div className="nav-actions">

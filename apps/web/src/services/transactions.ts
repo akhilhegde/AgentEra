@@ -36,7 +36,7 @@ export const optInToUsdc = async (senderAddress: string) => {
   }
 };
 
-export const sendUsdc = async (senderAddress: string, receiverAddress: string, amountStr: string) => {
+export const sendUsdc = async (senderAddress: string, receiverAddress: string, amountStr: string, skillId?: string) => {
   const algodClient = getAlgodClient();
   const peraWallet = getPeraWallet();
 
@@ -45,13 +45,19 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
   // Convert price string to micro USDC (6 decimals)
   const amount = Math.floor(parseFloat(amountStr) * 1_000_000);
 
-  const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+  const txnParams: any = {
     sender: senderAddress,
     receiver: receiverAddress,
     amount: amount,
     assetIndex: USDC_ASA_ID,
     suggestedParams,
-  });
+  };
+
+  if (skillId) {
+    txnParams.note = new TextEncoder().encode(`agenthub:${skillId}`);
+  }
+
+  const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject(txnParams);
 
   const singleTxnGroups = [{ txn: transferTxn, signers: [senderAddress] }];
 

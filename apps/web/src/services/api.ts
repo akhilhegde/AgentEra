@@ -61,6 +61,29 @@ export async function fetchSkill(id: string): Promise<Skill | null> {
   return data.skill || null;
 }
 
+export interface Transaction {
+  skillId: string;
+  skillName: string;
+  category: string;
+  amount: string;
+  currency: string;
+  assetId: number;
+  txId: string;
+  status: string;
+  network: string;
+  timestamp: string;
+  from: string;
+  to: string;
+}
+
+/** Fetch transaction history for a wallet */
+export async function fetchTransactions(walletAddress: string): Promise<Transaction[]> {
+  const res = await fetch(`${API_BASE}/transactions?wallet=${walletAddress}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.transactions || [];
+}
+
 /** Execute a skill via the payment proxy */
 export async function executeSkill(
   skillId: string,
