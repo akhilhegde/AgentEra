@@ -26,14 +26,18 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
   };
 
   const handleOptIn = async () => {
+    if (parseFloat(algoBalance || '0') < 0.101) {
+      alert("You need at least 0.101 ALGO to opt into USDC (0.1 for minimum balance requirement + 0.001 for transaction fee). Please fund your wallet using the TestNet faucet first.");
+      return;
+    }
+    
     setIsOptingIn(true);
     try {
       await optInToUsdc(address);
-      // Data will refresh on the next poll or you can manually trigger it, but 
-      // let's update store directly or just let it refresh.
       useWalletStore.getState().setBalances(algoBalance || "0", usdcBalance || "0", true);
     } catch (e) {
       console.error(e);
+      alert(e?.message || "Failed to opt into USDC. Did you cancel the transaction in Pera Wallet?");
     } finally {
       setIsOptingIn(false);
     }

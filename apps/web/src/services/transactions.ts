@@ -10,8 +10,8 @@ export const optInToUsdc = async (senderAddress: string) => {
 
   // ASA Opt-in is a 0 amount transfer to self
   const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-    from: senderAddress,
-    to: senderAddress,
+    sender: senderAddress,
+    receiver: senderAddress,
     amount: 0,
     assetIndex: USDC_ASA_ID,
     suggestedParams,
@@ -24,7 +24,7 @@ export const optInToUsdc = async (senderAddress: string) => {
     
     // Convert Uint8Array to format acceptable by algod
     const txId = optInTxn.txID().toString();
-    const { txId: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
+    const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);
@@ -46,8 +46,8 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
   const amount = Math.floor(parseFloat(amountStr) * 1_000_000);
 
   const transferTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-    from: senderAddress,
-    to: receiverAddress,
+    sender: senderAddress,
+    receiver: receiverAddress,
     amount: amount,
     assetIndex: USDC_ASA_ID,
     suggestedParams,
@@ -59,7 +59,7 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
     
     const txId = transferTxn.txID().toString();
-    const { txId: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
+    const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);

@@ -17,18 +17,18 @@ export const fetchAlgodData = async (address: string) => {
     const accountInfo = await algodClient.accountInformation(address).do();
     
     // ALGO balance is in microAlgos
-    const algoMicro = accountInfo.amount || 0;
+    const algoMicro = Number(accountInfo.amount || 0);
     const algoBalance = (algoMicro / 1_000_000).toFixed(6);
 
     let usdcBalance = "0.00";
     let hasUsdcOptIn = false;
 
     if (accountInfo.assets) {
-      const usdcAsset = accountInfo.assets.find((asset: any) => asset["asset-id"] === USDC_ASA_ID);
+      const usdcAsset = accountInfo.assets.find((asset: any) => Number(asset.assetId) === USDC_ASA_ID);
       if (usdcAsset) {
         hasUsdcOptIn = true;
         // USDC has 6 decimals
-        usdcBalance = (usdcAsset.amount / 1_000_000).toFixed(6);
+        usdcBalance = (Number(usdcAsset.amount) / 1_000_000).toFixed(6);
       }
     }
 

@@ -146,32 +146,33 @@ apiRoutes.post("/execute-with-payment", async (c) => {
     const algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
     
     // Wait for the transaction to be confirmed (if not already) or just fetch it
-    const txInfo = await algodClient.pendingTransactionInformation(transactionId).do().catch(async () => {
-       // If not in pending, it might be in an indexer, but for immediate verification, pending is usually enough
-       // Or we can just use indexer if needed, but nodely's algod has a good history buffer.
-       // Let's assume it's recently confirmed and might be in the block.
+    let txInfo;
+    try {
+       // Wait for up to 4 rounds for the transaction to be confirmed on this node.
+       txInfo = await algosdk.waitForConfirmation(algodClient, transactionId, 4);
+    } catch (e) {
        throw new Error("Transaction not found or not yet confirmed. Please wait a few seconds and try again.");
-    });
+    }
     
     // Check if confirmed
-    if (txInfo["confirmed-round"] && txInfo["confirmed-round"] > 0) {
+    if (txInfo.confirmedRound && txInfo.confirmedRound > 0n) {
       const tx = txInfo.txn.txn;
       
       // Verify receiver (must be x402Config.receiverAddress)
-      const receiverAddr = algosdk.encodeAddress(tx.arcv); // Asset receiver
+      const receiverAddr = tx.assetTransfer?.receiver?.toString(); // Asset receiver
       if (receiverAddr !== x402Config.receiverAddress) {
          return c.json({ success: false, error: "Invalid receiver address in transaction" } as ErrorResponse, 400);
       }
       
       // Verify ASA ID
-      if (tx.xaid !== x402Config.usdcAsaId) {
+      if (Number(tx.assetTransfer?.assetIndex) !== x402Config.usdcAsaId) {
          return c.json({ success: false, error: "Invalid asset ID. Must be USDC." } as ErrorResponse, 400);
       }
 
       // Verify Amount
       // USDC has 6 decimals, so price * 1,000,000
       const expectedAmount = Math.floor(parseFloat(skill.price) * 1000000);
-      if (tx.aamt < expectedAmount) {
+      if (Number(tx.assetTransfer?.amount) < expectedAmount) {
          return c.json({ success: false, error: "Insufficient payment amount in transaction." } as ErrorResponse, 400);
       }
       

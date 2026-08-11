@@ -76,6 +76,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
           { id: 'check', label: 'USDC Not Enabled', status: 'error', message: 'Please enable USDC in your wallet menu first.' }
         ];
         setProgressSteps(currentSteps);
+        setError('Please enable USDC in your wallet menu first.');
         setLoading(false);
         return;
       }
@@ -87,6 +88,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
            { id: 'check', label: 'Insufficient Balance', status: 'error', message: `You need ${requiredAmount} USDC but have ${usdcBalance}.` }
          ];
          setProgressSteps(currentSteps);
+         setError(`Insufficient Balance: You need ${requiredAmount} USDC but have ${usdcBalance}.`);
          setLoading(false);
          return;
       }
@@ -97,6 +99,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
            { id: 'check', label: 'Insufficient ALGO', status: 'error', message: 'You need ALGO to pay transaction fees.' }
          ];
          setProgressSteps(currentSteps);
+         setError('Insufficient ALGO: You need ALGO to pay transaction fees.');
          setLoading(false);
          return;
       }
@@ -117,6 +120,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
           { id: 'sign', label: 'Transaction Failed or Cancelled', status: 'error', message: err?.message || 'Cancelled in Pera Wallet' }
         ];
         setProgressSteps(currentSteps);
+        setError(err?.message || 'Cancelled in Pera Wallet');
         setLoading(false);
         return;
       }
