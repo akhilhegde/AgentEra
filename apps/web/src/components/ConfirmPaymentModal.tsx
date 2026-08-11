@@ -1,5 +1,6 @@
 import { X, ShieldCheck, Wallet, ArrowRight } from "lucide-react";
 import type { Skill } from "../services/api";
+import { useWalletStore } from "../stores/wallet.store";
 
 interface ConfirmPaymentModalProps {
   skill: Skill;
@@ -14,6 +15,7 @@ export function ConfirmPaymentModal({
   onClose,
   onConfirmPay,
 }: ConfirmPaymentModalProps) {
+  const { isConnected, address } = useWalletStore();
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -62,7 +64,7 @@ export function ConfirmPaymentModal({
         <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3.5 mb-5 flex items-start gap-3 text-xs text-indigo-200">
           <Wallet className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
           <div>
-            By clicking <b>Confirm & Pay</b>, exactly <span className="text-emerald-400 font-bold">${skill.price} USDC</span> testnet currency will be deducted from your wallet and settled to the receiver on <b>Algorand TestNet</b>.
+            By clicking <b>Confirm & Pay</b>, exactly <span className="text-emerald-400 font-bold">${skill.price} USDC</span> testnet currency will be deducted from {isConnected ? `your wallet (${address?.slice(0,6)}...${address?.slice(-4)})` : "the server wallet"} and settled to the receiver on <b>Algorand TestNet</b>.
           </div>
         </div>
 

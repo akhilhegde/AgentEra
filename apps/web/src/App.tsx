@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { reconnectSession } from './services/peraWallet';
 import Topline from './components/Topline';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -12,6 +13,10 @@ import Toast from './components/Toast';
 export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    reconnectSession();
+  }, []);
 
   const showToast = (message) => {
     setToastMessage(message);

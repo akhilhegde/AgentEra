@@ -11,6 +11,9 @@ import {
 import { executePaidRequest } from "../services/payment-client.js";
 import { getExplorerUrl } from "@agenthub/shared";
 import type { SkillExecutionResponse, ErrorResponse } from "@agenthub/shared";
+import { executeSkill } from "../services/skill-executor.js";
+import { x402Config } from "../config/x402.config.js";
+import algosdk from "algosdk";
 
 const apiRoutes = new Hono();
 
@@ -108,6 +111,128 @@ apiRoutes.post("/execute", async (c) => {
   };
 
   return c.json(response);
+});
+
+// ============================
+// Payment Verification (User Wallet flow)
+// ============================
+
+/** POST /api/execute-with-payment — Execute a skill after verifying an existing user transaction */
+apiRoutes.post("/execute-with-payment", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { skillId, input, transactionId } = body;
+
+  if (!skillId || !input || !transactionId) {
+    return c.json(
+      { success: false, error: "skillId, input, and transactionId are required", code: "MISSING_INPUT" } as ErrorResponse,
+      400
+    );
+  }
+
+  const skill = getSkillById(skillId) || getSkillBySlug(skillId);
+  if (!skill) {
+    return c.json(
+      { success: false, error: "Skill not found", code: "SKILL_NOT_FOUND" } as ErrorResponse,
+      404
+    );
+  }
+
+  try {
+    // 1. Verify transaction on Algorand TestNet
+    const algodToken = "";
+    // Using a public node for verification, preferably the same one the frontend uses
+    const algodServer = "https://testnet-api.4160.nodely.dev";
+    const algodPort = 443;
+    const algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
+    
+    // Wait for the transaction to be confirmed (if not already) or just fetch it
+    const txInfo = await algodClient.pendingTransactionInformation(transactionId).do().catch(async () => {
+       // If not in pending, it might be in an indexer, but for immediate verification, pending is usually enough
+       // Or we can just use indexer if needed, but nodely's algod has a good history buffer.
+       // Let's assume it's recently confirmed and might be in the block.
+       throw new Error("Transaction not found or not yet confirmed. Please wait a few seconds and try again.");
+    });
+    
+    // Check if confirmed
+    if (txInfo["confirmed-round"] && txInfo["confirmed-round"] > 0) {
+      const tx = txInfo.txn.txn;
+      
+      // Verify receiver (must be x402Config.receiverAddress)
+      const receiverAddr = algosdk.encodeAddress(tx.arcv); // Asset receiver
+      if (receiverAddr !== x402Config.receiverAddress) {
+         return c.json({ success: false, error: "Invalid receiver address in transaction" } as ErrorResponse, 400);
+      }
+      
+      // Verify ASA ID
+      if (tx.xaid !== x402Config.usdcAsaId) {
+         return c.json({ success: false, error: "Invalid asset ID. Must be USDC." } as ErrorResponse, 400);
+      }
+
+      // Verify Amount
+      // USDC has 6 decimals, so price * 1,000,000
+      const expectedAmount = Math.floor(parseFloat(skill.price) * 1000000);
+      if (tx.aamt < expectedAmount) {
+         return c.json({ success: false, error: "Insufficient payment amount in transaction." } as ErrorResponse, 400);
+      }
+      
+    } else {
+      return c.json({ success: false, error: "Transaction is not yet confirmed." } as ErrorResponse, 400);
+    }
+
+  } catch (error: any) {
+    console.error("Payment verification failed:", error);
+    return c.json(
+      { success: false, error: error.message || "Failed to verify transaction.", code: "PAYMENT_UNVERIFIED" } as ErrorResponse,
+      400
+    );
+  }
+
+  // 2. Execute skill directly since payment is verified
+  console.log(`🎯 Executing skill (user paid): ${skill.name} via tx ${transactionId}`);
+  let resultContent = "";
+  try {
+     resultContent = await executeSkill(skill.slug, input);
+  } catch (err: any) {
+     return c.json(
+      { success: false, error: err.message || "Skill execution failed", code: "EXECUTION_FAILED" } as ErrorResponse,
+      500
+    );
+  }
+
+  const response: SkillExecutionResponse = {
+    success: true,
+    skill: skill.id,
+    result: {
+      content: resultContent,
+      format: skill.outputSchema.type,
+    },
+    payment: {
+      status: "settled",
+      network: "algorand-testnet",
+      amount: skill.price,
+      currency: skill.currency,
+    },
+    transactionId: transactionId,
+    explorerUrl: getExplorerUrl(transactionId),
+  };
+
+  return c.json(response);
+});
+
+// ============================
+// Public Config
+// ============================
+
+/** GET /api/config/public — Expose non-secret config */
+apiRoutes.get("/config/public", (c) => {
+  return c.json({
+    success: true,
+    config: {
+      receiverAddress: x402Config.receiverAddress,
+      usdcAsaId: x402Config.usdcAsaId,
+      network: "algorand-testnet"
+    }
+  });
 });
 
 // ============================

@@ -44,6 +44,15 @@ export async function fetchSkills(): Promise<Skill[]> {
   return data.skills || [];
 }
 
+export const fetchPublicConfig = async () => {
+  const response = await fetch(`${API_BASE}/config/public`);
+  const data = await response.json();
+  if (data.success) {
+    return data.config;
+  }
+  return null;
+};
+
 /** Fetch a single skill by ID */
 export async function fetchSkill(id: string): Promise<Skill | null> {
   const res = await fetch(`${API_BASE}/skills/${id}`);
@@ -61,6 +70,20 @@ export async function executeSkill(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skillId, input }),
+  });
+  return res.json();
+}
+
+/** Execute a skill with a user-verified payment */
+export async function executeSkillWithPayment(
+  skillId: string,
+  input: string,
+  transactionId: string
+): Promise<SkillExecutionResponse | ErrorResponse> {
+  const res = await fetch(`${API_BASE}/execute-with-payment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skillId, input, transactionId }),
   });
   return res.json();
 }
