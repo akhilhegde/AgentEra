@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, Sparkles, Loader2, AlertCircle, ExternalLink, CheckCircle2, ArrowRight, Wallet, Cpu, Briefcase, PenTool, Layers3, FileText, Compass, Database } from 'lucide-react';
+import { executeSkill, executeSkillWithPayment, fetchPublicConfig } from '../services/api';
+import { useWalletStore } from '../stores/wallet.store';
+import { sendUsdc } from '../services/transactions';
+import TransactionProgress from './TransactionProgress';
 
 const getCategoryIcon = (category) => {
   const cat = category?.toLowerCase() || '';
@@ -11,7 +15,6 @@ const getCategoryIcon = (category) => {
   if (cat.includes('data')) return <Database size={24} />;
   return <Sparkles size={24} />;
 };
-import { executeSkill } from '../services/api';
 
 const SAMPLE_INPUTS = {
   "resume-review":
@@ -29,11 +32,19 @@ const SAMPLE_INPUTS = {
 };
 
 export default function PaymentModal({ skill, onClose, onToast }) {
+  const { isConnected, address, hasUsdcOptIn, usdcBalance, algoBalance } = useWalletStore();
   const [input, setInput] = useState(SAMPLE_INPUTS[skill.slug || skill.id] || '');
   const [loading, setLoading] = useState(false);
-  const [executionStep, setExecutionStep] = useState(0); // 0: Idle, 1: Request, 2: 402, 3: Settling, 4: Gemini, 5: Done
+  const [executionStep, setExecutionStep] = useState(0); 
   const [resultData, setResultData] = useState(null);
   const [error, setError] = useState(null);
+  
+  const [config, setConfig] = useState(null);
+  const [progressSteps, setProgressSteps] = useState([]);
+
+  useEffect(() => {
+    fetchPublicConfig().then(setConfig).catch(console.error);
+  }, []);
 
   const loadSample = () => {
     if (SAMPLE_INPUTS[skill.slug || skill.id]) {
@@ -42,17 +53,135 @@ export default function PaymentModal({ skill, onClose, onToast }) {
     }
   };
 
+  const handleWalletPaymentFlow = async () => {
+    if (!config) {
+      setError("Failed to load network configuration. Please try again.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setResultData(null);
+    
+    let currentSteps = [
+      { id: 'connect', label: 'Wallet Connected', status: 'success' },
+      { id: 'check', label: 'Checking Balances', status: 'loading' }
+    ];
+    setProgressSteps([...currentSteps]);
+
+    try {
+      if (!hasUsdcOptIn) {
+        currentSteps = [
+          ...currentSteps.slice(0, 1),
+          { id: 'check', label: 'USDC Not Enabled', status: 'error', message: 'Please enable USDC in your wallet menu first.' }
+        ];
+        setProgressSteps(currentSteps);
+        setLoading(false);
+        return;
+      }
+      
+      const requiredAmount = parseFloat(skill.price);
+      if (parseFloat(usdcBalance || '0') < requiredAmount) {
+         currentSteps = [
+           ...currentSteps.slice(0, 1),
+           { id: 'check', label: 'Insufficient Balance', status: 'error', message: `You need ${requiredAmount} USDC but have ${usdcBalance}.` }
+         ];
+         setProgressSteps(currentSteps);
+         setLoading(false);
+         return;
+      }
+
+      if (parseFloat(algoBalance || '0') < 0.002) {
+         currentSteps = [
+           ...currentSteps.slice(0, 1),
+           { id: 'check', label: 'Insufficient ALGO', status: 'error', message: 'You need ALGO to pay transaction fees.' }
+         ];
+         setProgressSteps(currentSteps);
+         setLoading(false);
+         return;
+      }
+
+      currentSteps = [
+        ...currentSteps.slice(0, 1),
+        { id: 'check', label: 'Balances Verified', status: 'success' },
+        { id: 'sign', label: 'Waiting for Pera Approval', status: 'loading', message: 'Please check your Pera Wallet to sign the transaction.' }
+      ];
+      setProgressSteps([...currentSteps]);
+
+      let txId;
+      try {
+        txId = await sendUsdc(address, config.receiverAddress, skill.price.toString());
+      } catch (err) {
+        currentSteps = [
+          ...currentSteps.slice(0, 2),
+          { id: 'sign', label: 'Transaction Failed or Cancelled', status: 'error', message: err?.message || 'Cancelled in Pera Wallet' }
+        ];
+        setProgressSteps(currentSteps);
+        setLoading(false);
+        return;
+      }
+
+      currentSteps = [
+        ...currentSteps.slice(0, 2),
+        { id: 'sign', label: 'Transaction Signed', status: 'success' },
+        { id: 'confirm', label: 'Payment Confirmed', status: 'success', message: `TxID: ${txId.substring(0, 8)}...` },
+        { id: 'run', label: 'Running AI Skill', status: 'loading' }
+      ];
+      setProgressSteps([...currentSteps]);
+
+      const data = await executeSkillWithPayment(skill.id, input, txId);
+      
+      if (data.success && data.result) {
+        currentSteps = [
+          ...currentSteps.slice(0, 4),
+          { id: 'run', label: 'Skill Executed Successfully', status: 'success' }
+        ];
+        setProgressSteps([...currentSteps]);
+        
+        const receipt = {
+          success: true,
+          skillName: skill.name,
+          result: data.result,
+          price: skill.price,
+          currency: data.payment?.currency || 'USDC',
+          network: data.payment?.network || 'Algorand TestNet',
+          transactionId: txId,
+          explorerUrl: data.explorerUrl || `https://testnet.explorer.perawallet.app/tx/${txId}`,
+        };
+        setResultData(receipt);
+        onToast(`Payment of $${skill.price} USDC settled on-chain for ${skill.name}!`);
+      } else {
+        currentSteps = [
+          ...currentSteps.slice(0, 4),
+          { id: 'run', label: 'Execution Failed', status: 'error', message: data.error }
+        ];
+        setProgressSteps([...currentSteps]);
+        setError(data.error || 'Skill execution failed');
+      }
+
+    } catch (err) {
+       console.error(err);
+       setError("An unexpected error occurred.");
+    } finally {
+       setLoading(false);
+    }
+  };
+
   const handleConfirmAndPay = async () => {
+    if (isConnected) {
+      return handleWalletPaymentFlow();
+    }
+
     if (!input.trim()) return;
 
     setLoading(true);
     setError(null);
     setResultData(null);
-    setExecutionStep(1); // 1. Sending request
+    setExecutionStep(1); 
 
-    const stepTimer1 = setTimeout(() => setExecutionStep(2), 600); // 2. 402 Received
-    const stepTimer2 = setTimeout(() => setExecutionStep(3), 1600); // 3. Signing & Settling
-    const stepTimer3 = setTimeout(() => setExecutionStep(4), 4500); // 4. Gemini AI Model
+    const stepTimer1 = setTimeout(() => setExecutionStep(2), 600); 
+    const stepTimer2 = setTimeout(() => setExecutionStep(3), 1600); 
+    const stepTimer3 = setTimeout(() => setExecutionStep(4), 4500); 
 
     try {
       const data = await executeSkill(skill.id, input);
@@ -97,9 +226,9 @@ export default function PaymentModal({ skill, onClose, onToast }) {
         <div className="modal-header">
           <div className="modal-title-box">
             <span className="x402-badge">
-              <ShieldCheck size={14} /> x402 Protocol Active
+              <ShieldCheck size={14} /> {isConnected ? "Pera Wallet Payment" : "x402 Protocol Active"}
             </span>
-            <h3>x402 Payment Required</h3>
+            <h3>{isConnected ? "Wallet Payment Required" : "x402 Payment Required"}</h3>
           </div>
           <button className="modal-close" onClick={onClose} title="Close">
             <X size={18} />
@@ -129,7 +258,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
             <div className="x402-notice">
               <Wallet size={16} className="notice-icon" />
               <span>
-                By confirming, <b>${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC</b> testnet currency will be deducted from the payer wallet and transferred to the skill receiver address on Algorand TestNet.
+                By confirming, <b>${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC</b> testnet currency will be deducted from {isConnected ? "your wallet" : "the payer wallet"} and transferred to the skill receiver address on Algorand TestNet.
               </span>
             </div>
 
@@ -152,7 +281,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
             />
 
             {/* Execution Steps Progress Indicator */}
-            {loading && (
+            {loading && !isConnected && (
               <div className="execution-pipeline">
                 <h5>
                   <Cpu size={14} className="spin-pulse" /> Live x402 Settlement & Execution Pipeline
@@ -181,6 +310,15 @@ export default function PaymentModal({ skill, onClose, onToast }) {
                 </div>
               </div>
             )}
+            
+            {loading && isConnected && (
+              <div className="execution-pipeline">
+                <h5>
+                  <Wallet size={14} className="spin-pulse" /> Wallet Payment & Execution Pipeline
+                </h5>
+                <TransactionProgress steps={progressSteps} />
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -200,7 +338,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
                 <CheckCircle2 size={20} className="receipt-check" />
                 <div>
                   <h5>Payment Confirmed & Settled On-Chain</h5>
-                  <p>Settlement verified via x402 Protocol on Algorand TestNet</p>
+                  <p>Settlement verified {isConnected ? "via Wallet" : "via x402 Protocol"} on Algorand TestNet</p>
                 </div>
               </div>
               <div className="receipt-details">
@@ -244,11 +382,11 @@ export default function PaymentModal({ skill, onClose, onToast }) {
               >
                 {loading ? (
                   <>
-                    <Loader2 size={16} className="spin" /> Processing x402...
+                    <Loader2 size={16} className="spin" /> {isConnected ? "Processing Payment..." : "Processing x402..."}
                   </>
                 ) : (
                   <>
-                    Confirm & Pay ${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC <ArrowRight size={15} />
+                    {isConnected ? "Pay via Pera Wallet " : "Confirm & Pay "}${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC <ArrowRight size={15} />
                   </>
                 )}
               </button>

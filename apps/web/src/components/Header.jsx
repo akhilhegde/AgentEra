@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, WalletCards, Menu, X } from 'lucide-react';
+import { useWalletStore } from '../stores/wallet.store';
+import { connectWallet } from '../services/peraWallet';
+import WalletMenu from './WalletMenu';
 
 export default function Header({ onToast }) {
-  const [walletConnected, setWalletConnected] = useState(false);
+  const { isConnected, address, isConnecting } = useWalletStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [walletMenuOpen, setWalletMenuOpen] = useState(false);
+  const walletRef = useRef(null);
 
-  const handleWalletClick = () => {
-    if (!walletConnected) {
-      setWalletConnected(true);
-      onToast('Wallet connected (0x71...A42)');
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (walletRef.current && !walletRef.current.contains(event.target)) {
+        setWalletMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleWalletClick = async () => {
+    if (!isConnected) {
+      await connectWallet();
+      onToast('Wallet connected');
     } else {
-      setWalletConnected(false);
-      onToast('Wallet disconnected');
+      setWalletMenuOpen(!walletMenuOpen);
     }
   };
 
@@ -39,10 +53,13 @@ export default function Header({ onToast }) {
       </nav>
 
       <div className="nav-actions">
-        <button className="wallet" onClick={handleWalletClick}>
-          <WalletCards size={16} />
-          {walletConnected ? '0x71...A42' : 'Connect wallet'}
-        </button>
+        <div className="wallet-container" ref={walletRef}>
+          <button className="wallet" onClick={handleWalletClick} disabled={isConnecting}>
+            <WalletCards size={16} />
+            {isConnecting ? 'Connecting...' : (isConnected ? `${address.slice(0, 4)}...${address.slice(-4)}` : 'Connect wallet')}
+          </button>
+          <WalletMenu isOpen={walletMenuOpen} onClose={() => setWalletMenuOpen(false)} />
+        </div>
         <button className="hamb" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
