@@ -15,16 +15,15 @@ export const optInToUsdc = async (senderAddress: string) => {
     amount: 0,
     assetIndex: USDC_ASA_ID,
     suggestedParams,
-  });
+  } as any);
 
   const singleTxnGroups = [{ txn: optInTxn, signers: [senderAddress] }];
 
   try {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
     
-    // Convert Uint8Array to format acceptable by algod
-    const txId = optInTxn.txID().toString();
-    const { txId: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
+    const sendResult = await algodClient.sendRawTransaction(signedTxns).do() as any;
+    const confirmedTxId = sendResult.txId || sendResult.txid || optInTxn.txID().toString();
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);
@@ -51,15 +50,15 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
     amount: amount,
     assetIndex: USDC_ASA_ID,
     suggestedParams,
-  });
+  } as any);
 
   const singleTxnGroups = [{ txn: transferTxn, signers: [senderAddress] }];
 
   try {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
     
-    const txId = transferTxn.txID().toString();
-    const { txId: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
+    const sendResult = await algodClient.sendRawTransaction(signedTxns).do() as any;
+    const confirmedTxId = sendResult.txId || sendResult.txid || transferTxn.txID().toString();
     
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);

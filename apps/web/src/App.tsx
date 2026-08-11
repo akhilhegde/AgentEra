@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { reconnectSession } from './services/peraWallet';
 import Topline from './components/Topline';
 import Header from './components/Header';
@@ -18,7 +18,7 @@ export default function App() {
     reconnectSession();
   }, []);
 
-  const showToast = (message) => {
+  const showToast = (message: string) => {
     setToastMessage(message);
     setToastVisible(true);
     setTimeout(() => {

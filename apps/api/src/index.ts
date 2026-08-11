@@ -99,8 +99,10 @@ console.log(`
 ╚══════════════════════════════════════════════╝
 `);
 
-serve({ fetch: app.fetch, port }, (info) => {
-  console.log(`🚀 Server running at http://localhost:${info.port}`);
-});
+if (!process.env.VERCEL) {
+  serve({ fetch: app.fetch, port }, (info) => {
+    console.log(`🚀 Server running at http://localhost:${info.port}`);
+  });
+}
 
 export default app;

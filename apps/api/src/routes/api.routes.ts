@@ -153,25 +153,31 @@ apiRoutes.post("/execute-with-payment", async (c) => {
        throw new Error("Transaction not found or not yet confirmed. Please wait a few seconds and try again.");
     });
     
+    const rawTxInfo = txInfo as any;
+    const confirmedRound = rawTxInfo["confirmed-round"] || rawTxInfo.confirmedRound;
+
     // Check if confirmed
-    if (txInfo["confirmed-round"] && txInfo["confirmed-round"] > 0) {
-      const tx = txInfo.txn.txn;
+    if (confirmedRound && confirmedRound > 0) {
+      const tx = rawTxInfo.txn?.txn || rawTxInfo.txn;
       
       // Verify receiver (must be x402Config.receiverAddress)
-      const receiverAddr = algosdk.encodeAddress(tx.arcv); // Asset receiver
+      const receiverRaw = tx.arcv || tx.rcv;
+      const receiverAddr = receiverRaw ? algosdk.encodeAddress(receiverRaw) : "";
       if (receiverAddr !== x402Config.receiverAddress) {
          return c.json({ success: false, error: "Invalid receiver address in transaction" } as ErrorResponse, 400);
       }
       
       // Verify ASA ID
-      if (tx.xaid !== x402Config.usdcAsaId) {
+      const assetId = tx.xaid || tx.aid;
+      if (assetId !== x402Config.usdcAsaId) {
          return c.json({ success: false, error: "Invalid asset ID. Must be USDC." } as ErrorResponse, 400);
       }
 
       // Verify Amount
       // USDC has 6 decimals, so price * 1,000,000
       const expectedAmount = Math.floor(parseFloat(skill.price) * 1000000);
-      if (tx.aamt < expectedAmount) {
+      const assetAmount = tx.aamt || tx.amt || 0;
+      if (assetAmount < expectedAmount) {
          return c.json({ success: false, error: "Insufficient payment amount in transaction." } as ErrorResponse, 400);
       }
       

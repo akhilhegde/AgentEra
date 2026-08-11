@@ -18,7 +18,7 @@ export const fetchAlgodData = async (address: string) => {
     
     // ALGO balance is in microAlgos
     const algoMicro = accountInfo.amount || 0;
-    const algoBalance = (algoMicro / 1_000_000).toFixed(6);
+    const algoBalance = (Number(algoMicro) / 1_000_000).toFixed(6);
 
     let usdcBalance = "0.00";
     let hasUsdcOptIn = false;
@@ -28,7 +28,7 @@ export const fetchAlgodData = async (address: string) => {
       if (usdcAsset) {
         hasUsdcOptIn = true;
         // USDC has 6 decimals
-        usdcBalance = (usdcAsset.amount / 1_000_000).toFixed(6);
+        usdcBalance = (Number(usdcAsset.amount) / 1_000_000).toFixed(6);
       }
     }
 
