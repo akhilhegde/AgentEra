@@ -3,11 +3,14 @@
 // ===========================================
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Loader2, AlertCircle, Sparkles, ShieldCheck, Cpu, ArrowRight } from "lucide-react";
-import { fetchSkill, executeSkill, type Skill, type SkillExecutionResponse } from "../services/api";
+import { ArrowLeft, Loader2, AlertCircle, Sparkles, ShieldCheck, Cpu, ArrowRight, Upload, CheckCircle2, Download } from "lucide-react";
+import { fetchSkill, executeSkill, executeSkillWithPayment, fetchPublicConfig, type Skill, type SkillExecutionResponse } from "../services/api";
 import { TransactionReceipt } from "../components/TransactionReceipt";
 import { ConfirmPaymentModal } from "../components/ConfirmPaymentModal";
 import { usePaymentStore } from "../stores/payment.store";
+import { useWalletStore } from "../stores/wallet.store";
+import { sendUsdc } from "../services/transactions";
+import { connectWallet } from "../services/peraWallet";
 import ReactMarkdown from "react-markdown";
 
 const SAMPLE_INPUTS: Record<string, string> = {
@@ -29,15 +32,21 @@ export function SkillPage() {
   const { id } = useParams<{ id: string }>();
   const [skill, setSkill] = useState<Skill | null>(null);
   const [input, setInput] = useState("");
+  const [fileData, setFileData] = useState<string | undefined>(undefined);
+  const [fileName, setFileName] = useState("");
   const [loading, setLoading] = useState(false);
   const [executionStep, setExecutionStep] = useState<number>(0);
   const [pageLoading, setPageLoading] = useState(true);
   const [result, setResult] = useState<SkillExecutionResponse | null>(null);
   const [error, setError] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [config, setConfig] = useState<any>(null);
+  
   const addPayment = usePaymentStore((s) => s.addPayment);
+  const { isConnected, address, hasUsdcOptIn, usdcBalance, algoBalance } = useWalletStore();
 
   useEffect(() => {
+    fetchPublicConfig().then(setConfig).catch(console.error);
     if (id) {
       fetchSkill(id)
         .then((s) => {
@@ -60,26 +69,55 @@ export function SkillPage() {
     }
   };
 
-  const handleExecute = async () => {
-    if (!skill || !input.trim()) return;
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFileData(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownload = () => {
+    if (!result || !result.result || !result.result.content) return;
+    const blob = new Blob([result.result.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${skill?.slug || skill?.name.toLowerCase().replace(/\s+/g, '-')}-report.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleWalletPaymentFlow = async () => {
+    if (!config || !skill) {
+      setError("Failed to load network configuration. Please try again.");
+      return;
+    }
     setLoading(true);
-    setExecutionStep(1); // 1. Request sent
+    setExecutionStep(1); // Checking balances
     setError("");
     setResult(null);
 
-    const stepTimer1 = setTimeout(() => setExecutionStep(2), 600); // 2. 402 Received
-    const stepTimer2 = setTimeout(() => setExecutionStep(3), 1500); // 3. Signing & Settling
-    const stepTimer3 = setTimeout(() => setExecutionStep(4), 4000); // 4. Gemini AI Model
-
     try {
-      const response = await executeSkill(skill.id, input);
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
-      clearTimeout(stepTimer3);
+      if (!hasUsdcOptIn) throw new Error('Please enable USDC in your wallet menu first.');
+      const requiredAmount = parseFloat(skill.price);
+      if (parseFloat(usdcBalance || '0') < requiredAmount) throw new Error(`Insufficient Balance: You need ${requiredAmount} USDC.`);
+      if (parseFloat(algoBalance || '0') < 0.002) throw new Error('Insufficient ALGO: You need ALGO to pay transaction fees.');
+
+      setExecutionStep(2); // Waiting for Pera Approval
+      const txId = await sendUsdc(address, config.receiverAddress, skill.price.toString());
+      
+      setExecutionStep(3); // Settled, executing skill
+      const response = await executeSkillWithPayment(skill.id, input, txId, fileData);
 
       if ("success" in response && response.success) {
+        setExecutionStep(5); // Running AI finished
         const execResponse = response as SkillExecutionResponse;
-        setExecutionStep(5);
         setResult(execResponse);
         addPayment(execResponse, skill.name);
       } else {
@@ -87,14 +125,26 @@ export function SkillPage() {
         setError((response as any).error || "Execution failed");
       }
     } catch (e: any) {
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
-      clearTimeout(stepTimer3);
       setExecutionStep(0);
       setError(e.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExecute = async () => {
+    if (!skill || !input.trim()) return;
+    
+    if (!isConnected) {
+      try {
+        await connectWallet();
+      } catch (err) {
+        console.error("Failed to connect wallet", err);
+      }
+      return;
+    }
+    
+    return handleWalletPaymentFlow();
   };
 
   if (pageLoading) {
@@ -176,7 +226,7 @@ export function SkillPage() {
             placeholder={skill.inputSchema.placeholder}
             maxLength={skill.inputSchema.maxLength}
             rows={9}
-            className="w-full px-4 py-3 rounded-xl bg-[#0f0f23] border border-[#2d2d5e] text-white placeholder-slate-600 focus:border-indigo-500 focus:outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+            className="w-full p-5 rounded-xl bg-[#0f0f23] border border-[#2d2d5e] text-white placeholder-slate-600 focus:border-indigo-500 focus:outline-none transition-colors resize-y font-mono text-[15px] leading-relaxed shadow-inner"
           />
           {skill.inputSchema.maxLength && (
             <div className="text-xs text-slate-500 mt-1 text-right">
@@ -184,18 +234,47 @@ export function SkillPage() {
             </div>
           )}
 
+          <div className="mt-4 flex items-center gap-3">
+            <label htmlFor="marketplace-file-upload" className="cursor-pointer text-xs flex items-center gap-2 bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 px-3 py-2 rounded-lg border border-indigo-500/30 transition-all">
+              <Upload className="w-3.5 h-3.5" /> {fileName ? 'Change File' : 'Upload File (PDF, DOCX, PNG)'}
+            </label>
+            <input
+              id="marketplace-file-upload"
+              type="file"
+              accept=".pdf,.docx,.png,.jpg,.jpeg"
+              onChange={handleFileUpload}
+              disabled={loading}
+              className="hidden"
+            />
+            {fileName && (
+              <span className="text-xs text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" /> {fileName}
+              </span>
+            )}
+          </div>
+
           <button
-            onClick={() => setShowConfirmModal(true)}
+            onClick={async () => {
+              if (!isConnected) {
+                try {
+                  await connectWallet();
+                } catch (err) {
+                  console.error("Failed to connect wallet", err);
+                }
+              } else {
+                setShowConfirmModal(true);
+              }
+            }}
             disabled={loading || !input.trim()}
             className="glow-btn w-full mt-5 py-3 text-base flex items-center justify-center gap-2 font-semibold"
           >
             {loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" /> Processing x402 Settlement...
+                <Loader2 className="w-5 h-5 animate-spin" /> Processing...
               </>
             ) : (
               <>
-                Pay ${skill.price} USDC & Run {skill.name} <ArrowRight className="w-4 h-4" />
+                {isConnected ? "Pay via Pera Wallet & Run " : "Connect Wallet to Pay & Run "}{skill.name} <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
@@ -204,6 +283,7 @@ export function SkillPage() {
             <ConfirmPaymentModal
               skill={skill}
               input={input}
+              fileName={fileName}
               onClose={() => setShowConfirmModal(false)}
               onConfirmPay={handleExecute}
             />
@@ -267,9 +347,17 @@ export function SkillPage() {
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-400" /> {skill.name} Output
               </h2>
-              <span className="text-xs px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 font-mono">
-                Format: {result.result.format || "markdown"}
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDownload}
+                  className="text-xs flex items-center gap-1.5 bg-indigo-500/10 text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30 transition-all font-semibold"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download Report
+                </button>
+                <span className="text-xs px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 font-mono">
+                  Format: {result.result.format || "markdown"}
+                </span>
+              </div>
             </div>
             <div className="markdown-output text-slate-200 leading-relaxed text-sm">
               <ReactMarkdown>{result.result.content}</ReactMarkdown>

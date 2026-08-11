@@ -64,12 +64,13 @@ export async function fetchSkill(id: string): Promise<Skill | null> {
 /** Execute a skill via the payment proxy */
 export async function executeSkill(
   skillId: string,
-  input: string
+  input: string,
+  fileData?: string
 ): Promise<SkillExecutionResponse | ErrorResponse> {
   const res = await fetch(`${API_BASE}/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skillId, input }),
+    body: JSON.stringify({ skillId, input, fileData }),
   });
   return res.json();
 }
@@ -78,12 +79,13 @@ export async function executeSkill(
 export async function executeSkillWithPayment(
   skillId: string,
   input: string,
-  transactionId: string
+  transactionId: string,
+  fileData?: string
 ): Promise<SkillExecutionResponse | ErrorResponse> {
   const res = await fetch(`${API_BASE}/execute-with-payment`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skillId, input, transactionId }),
+    body: JSON.stringify({ skillId, input, transactionId, fileData }),
   });
   return res.json();
 }

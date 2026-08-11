@@ -55,7 +55,7 @@ apiRoutes.get("/skills/category/:category", (c) => {
 /** POST /api/execute — Execute a paid skill via server-side x402 proxy */
 apiRoutes.post("/execute", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { skillId, input } = body;
+  const { skillId, input, fileData } = body;
 
   if (!skillId || !input) {
     return c.json(
@@ -79,7 +79,7 @@ apiRoutes.post("/execute", async (c) => {
   console.log(`🎯 Executing skill: ${skill.name} via x402 proxy → ${internalUrl}`);
 
   // Execute via payment client (handles 402 → sign → retry)
-  const result = await executePaidRequest(internalUrl, { input });
+  const result = await executePaidRequest(internalUrl, { input, fileData });
 
   if (!result.success) {
     return c.json(
@@ -120,7 +120,7 @@ apiRoutes.post("/execute", async (c) => {
 /** POST /api/execute-with-payment — Execute a skill after verifying an existing user transaction */
 apiRoutes.post("/execute-with-payment", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const { skillId, input, transactionId } = body;
+  const { skillId, input, transactionId, fileData } = body;
 
   if (!skillId || !input || !transactionId) {
     return c.json(
@@ -192,7 +192,7 @@ apiRoutes.post("/execute-with-payment", async (c) => {
   console.log(`🎯 Executing skill (user paid): ${skill.name} via tx ${transactionId}`);
   let resultContent = "";
   try {
-     resultContent = await executeSkill(skill.slug, input);
+     resultContent = await executeSkill(skill.slug, input, fileData);
   } catch (err: any) {
      return c.json(
       { success: false, error: err.message || "Skill execution failed", code: "EXECUTION_FAILED" } as ErrorResponse,

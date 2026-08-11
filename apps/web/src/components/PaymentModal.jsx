@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, Sparkles, Loader2, AlertCircle, ExternalLink, CheckCircle2, ArrowRight, Wallet, Cpu, Briefcase, PenTool, Layers3, FileText, Compass, Database } from 'lucide-react';
+import { X, ShieldCheck, Sparkles, Loader2, AlertCircle, ExternalLink, CheckCircle2, ArrowRight, Wallet, Cpu, Briefcase, PenTool, Layers3, FileText, Compass, Database, Upload, Download } from 'lucide-react';
 import { executeSkill, executeSkillWithPayment, fetchPublicConfig } from '../services/api';
+import { connectWallet } from '../services/peraWallet';
 import { useWalletStore } from '../stores/wallet.store';
 import { sendUsdc } from '../services/transactions';
 import TransactionProgress from './TransactionProgress';
+import ReactMarkdown from 'react-markdown';
 
 const getCategoryIcon = (category) => {
   const cat = category?.toLowerCase() || '';
@@ -34,6 +36,8 @@ const SAMPLE_INPUTS = {
 export default function PaymentModal({ skill, onClose, onToast }) {
   const { isConnected, address, hasUsdcOptIn, usdcBalance, algoBalance } = useWalletStore();
   const [input, setInput] = useState(SAMPLE_INPUTS[skill.slug || skill.id] || '');
+  const [fileData, setFileData] = useState(null);
+  const [fileName, setFileName] = useState('');
   const [loading, setLoading] = useState(false);
   const [executionStep, setExecutionStep] = useState(0); 
   const [resultData, setResultData] = useState(null);
@@ -41,6 +45,30 @@ export default function PaymentModal({ skill, onClose, onToast }) {
   
   const [config, setConfig] = useState(null);
   const [progressSteps, setProgressSteps] = useState([]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFileData(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDownload = () => {
+    if (!resultData || !resultData.result || !resultData.result.content) return;
+    const blob = new Blob([resultData.result.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${skill.slug || skill.name.toLowerCase().replace(/\s+/g, '-')}-report.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     fetchPublicConfig().then(setConfig).catch(console.error);
@@ -133,7 +161,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
       ];
       setProgressSteps([...currentSteps]);
 
-      const data = await executeSkillWithPayment(skill.id, input, txId);
+      const data = await executeSkillWithPayment(skill.id, input, txId, fileData);
       
       if (data.success && data.result) {
         currentSteps = [
@@ -172,55 +200,18 @@ export default function PaymentModal({ skill, onClose, onToast }) {
   };
 
   const handleConfirmAndPay = async () => {
-    if (isConnected) {
-      return handleWalletPaymentFlow();
+    if (!isConnected) {
+      try {
+        await connectWallet();
+      } catch (err) {
+        console.error("Failed to connect wallet", err);
+      }
+      return;
     }
 
     if (!input.trim()) return;
 
-    setLoading(true);
-    setError(null);
-    setResultData(null);
-    setExecutionStep(1); 
-
-    const stepTimer1 = setTimeout(() => setExecutionStep(2), 600); 
-    const stepTimer2 = setTimeout(() => setExecutionStep(3), 1600); 
-    const stepTimer3 = setTimeout(() => setExecutionStep(4), 4500); 
-
-    try {
-      const data = await executeSkill(skill.id, input);
-
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
-      clearTimeout(stepTimer3);
-
-      if (data.success && data.result) {
-        setExecutionStep(5);
-        const receipt = {
-          success: true,
-          skillName: skill.name,
-          result: data.result,
-          price: skill.price,
-          currency: data.payment?.currency || 'USDC',
-          network: data.payment?.network || 'Algorand TestNet',
-          transactionId: data.transactionId || 'AFJI6WUNF3VS5QKOTVZHRL3F46VNJZPWOTY4AOA2B2UHAPYJM4EQ',
-          explorerUrl: data.explorerUrl || 'https://testnet.explorer.perawallet.app/tx/AFJI6WUNF3VS5QKOTVZHRL3F46VNJZPWOTY4AOA2B2UHAPYJM4EQ',
-        };
-        setResultData(receipt);
-        onToast(`Payment of $${skill.price} USDC settled on-chain for ${skill.name}!`);
-      } else {
-        setExecutionStep(0);
-        setError(data.error || 'x402 payment or skill execution failed');
-      }
-    } catch (err) {
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
-      clearTimeout(stepTimer3);
-      setExecutionStep(0);
-      setError(err.message || 'Network error executing x402 payment');
-    } finally {
-      setLoading(false);
-    }
+    return handleWalletPaymentFlow();
   };
 
   return (
@@ -277,12 +268,28 @@ export default function PaymentModal({ skill, onClose, onToast }) {
 
             <textarea
               className="skill-input-area"
-              rows={6}
+              rows={8}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={`Enter prompt or details for ${skill.name}...`}
               disabled={loading}
+              style={{ padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
             />
+
+            <div className="file-upload-container" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label htmlFor="skill-file-upload" className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 12px' }}>
+                <Upload size={14} /> {fileName ? 'Change File' : 'Upload File (PDF, DOCX, PNG)'}
+              </label>
+              <input
+                id="skill-file-upload"
+                type="file"
+                accept=".pdf,.docx,.png,.jpg,.jpeg"
+                onChange={handleFileUpload}
+                disabled={loading}
+                style={{ display: 'none' }}
+              />
+              {fileName && <span style={{ fontSize: '12px', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle2 size={12}/> {fileName}</span>}
+            </div>
 
             {/* Execution Steps Progress Indicator */}
             {loading && !isConnected && (
@@ -367,7 +374,9 @@ export default function PaymentModal({ skill, onClose, onToast }) {
               <div className="output-head">
                 <Sparkles size={15} /> <span>{skill.name} Result</span>
               </div>
-              <pre className="output-content">{resultData.result.content}</pre>
+              <div className="output-content markdown-body" style={{ whiteSpace: 'normal', lineHeight: '1.6', fontSize: '15px', fontFamily: 'Inter, sans-serif', overflowY: 'auto', maxHeight: '55vh', padding: '16px', background: '#0a0d16', borderRadius: '12px', border: '1px solid #1c2436' }}>
+                <ReactMarkdown>{resultData.result.content}</ReactMarkdown>
+              </div>
             </div>
           </div>
         )}
@@ -386,19 +395,24 @@ export default function PaymentModal({ skill, onClose, onToast }) {
               >
                 {loading ? (
                   <>
-                    <Loader2 size={16} className="spin" /> {isConnected ? "Processing Payment..." : "Processing x402..."}
+                    <Loader2 size={16} className="spin" /> Processing Payment...
                   </>
                 ) : (
                   <>
-                    {isConnected ? "Pay via Pera Wallet " : "Confirm & Pay "}${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC <ArrowRight size={15} />
+                    {isConnected ? "Pay via Pera Wallet " : "Connect Wallet to Pay "}${typeof skill.price === 'number' ? skill.price.toFixed(2) : skill.price} USDC <ArrowRight size={15} />
                   </>
                 )}
               </button>
             </>
           ) : (
-            <button className="btn-confirm-pay" onClick={onClose}>
-              Done
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-secondary" onClick={handleDownload} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Download size={16} /> Download Report
+              </button>
+              <button className="btn-confirm-pay" onClick={onClose}>
+                Done
+              </button>
+            </div>
           )}
         </div>
       </div>

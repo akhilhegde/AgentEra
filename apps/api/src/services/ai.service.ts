@@ -9,6 +9,7 @@ import { aiConfig } from "../config/ai.config.js";
 interface AICompletionOptions {
   systemPrompt: string;
   userPrompt: string;
+  fileData?: string;
   maxTokens?: number;
 }
 
@@ -17,7 +18,7 @@ interface AICompletionResult {
   provider: string;
 }
 
-const GEMINI_MODELS = ["gemini-2.0-flash"];
+const GEMINI_MODELS = ["gemini-3.6-flash", "gemini-3.6-pro"];
 
 /** Gemini provider with retry & bulletproof fallback */
 async function completeWithGemini(
@@ -28,9 +29,23 @@ async function completeWithGemini(
   for (const model of GEMINI_MODELS) {
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
+        const parts: any[] = [{ text: `${options.systemPrompt}\n\n${options.userPrompt}` }];
+        
+        if (options.fileData) {
+          const match = options.fileData.match(/^data:(.+?);base64,(.+)$/);
+          if (match) {
+            parts.push({
+              inlineData: {
+                mimeType: match[1],
+                data: match[2]
+              }
+            });
+          }
+        }
+
         const response = await genai.models.generateContent({
           model,
-          contents: `${options.systemPrompt}\n\n${options.userPrompt}`,
+          contents: parts,
           config: {
             maxOutputTokens: options.maxTokens || 2048,
           },

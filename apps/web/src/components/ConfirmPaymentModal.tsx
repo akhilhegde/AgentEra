@@ -7,6 +7,7 @@ interface ConfirmPaymentModalProps {
   input: string;
   onClose: () => void;
   onConfirmPay: () => void;
+  fileName?: string;
 }
 
 export function ConfirmPaymentModal({
@@ -14,6 +15,7 @@ export function ConfirmPaymentModal({
   input,
   onClose,
   onConfirmPay,
+  fileName,
 }: ConfirmPaymentModalProps) {
   const { isConnected, address } = useWalletStore();
   return (
@@ -75,6 +77,11 @@ export function ConfirmPaymentModal({
           </label>
           <div className="bg-[#090919] p-3 rounded-lg border border-[#2d2d5e] text-xs text-slate-300 font-mono line-clamp-3 leading-relaxed">
             {input}
+            {fileName && (
+              <div className="mt-2 text-emerald-400 flex items-center gap-1">
+                📎 Attached: {fileName}
+              </div>
+            )}
           </div>
         </div>
 
@@ -93,7 +100,7 @@ export function ConfirmPaymentModal({
             }}
             className="glow-btn px-5 py-2.5 text-sm font-bold flex items-center gap-2"
           >
-            Confirm & Pay ${skill.price} USDC <ArrowRight className="w-4 h-4" />
+            {isConnected ? "Confirm via Pera Wallet " : "Confirm & Pay $"}{isConnected ? "" : `${skill.price} USDC`} <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

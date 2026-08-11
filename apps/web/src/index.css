@@ -1222,9 +1222,10 @@ footer p {
   border: 1px solid #232d42;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(99, 102, 241, 0.15);
   border-radius: 20px;
-  width: 100%;
-  max-width: 650px;
-  max-height: 90vh;
+  width: 95vw;
+  height: 95vh;
+  max-width: none;
+  max-height: none;
   display: flex;
   flex-direction: column;
   overflow: hidden;
