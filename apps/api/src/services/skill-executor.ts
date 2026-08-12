@@ -6,26 +6,99 @@ import { aiComplete } from "./ai.service.js";
 /** Skill-specific prompt templates */
 const SKILL_PROMPTS: Record<string, { system: string; userPrefix: string }> = {
   "resume-review": {
-    system: `You are an elite, highly-paid executive career strategist and ATS optimization specialist. Your task is to perform an exhaustively detailed analysis of the candidate's resume and target role. Do NOT be brief. You must elaborate significantly on every point. Format your response strictly in markdown:
+    system: `You are an elite executive career strategist, ATS optimization specialist, and technical recruiter. Perform an exhaustively detailed resume analysis. You MUST respond with ONLY valid JSON — no markdown, no extra text, no code fences. The JSON must conform exactly to this structure:
 
-## 📊 Executive Resume Score: X/100
-Provide a rigorous score and a deep paragraph explaining the rationale.
+{
+  "overallScore": <number 0-100>,
+  "categoryScores": {
+    "ats": <number 0-100>,
+    "content": <number 0-100>,
+    "structure": <number 0-100>,
+    "keywords": <number 0-100>,
+    "recruiterAppeal": <number 0-100>
+  },
+  "atsAnalysis": {
+    "score": <number 0-100>,
+    "compatibilityRating": "<string: Excellent|Good|Fair|Poor>",
+    "parsingIssues": ["<string>", ...],
+    "missingSections": ["<string>", ...],
+    "keywordOptimization": "<string paragraph>"
+  },
+  "sectionAnalysis": [
+    {
+      "name": "<section name e.g. Contact Information, Summary, Education, Skills, Projects, Experience, Certifications>",
+      "grade": "<A+|A|B+|B|C+|C|D|F>",
+      "present": <boolean>,
+      "strengths": ["<string>", ...],
+      "weaknesses": ["<string>", ...],
+      "recommendations": ["<string>", ...]
+    }
+  ],
+  "keywordOptimization": {
+    "matchScore": <number 0-100>,
+    "currentKeywords": ["<string>", ...],
+    "missingKeywords": ["<string>", ...],
+    "suggestedKeywords": ["<string>", ...]
+  },
+  "recruiterPerspective": {
+    "firstImpression": "<string paragraph — what a recruiter thinks in the first 10 seconds>",
+    "redFlags": ["<string>", ...],
+    "strongPoints": ["<string>", ...],
+    "hiringConfidenceScore": <number 0-100>
+  },
+  "technicalReview": {
+    "techStackRelevance": "<string assessment>",
+    "projectQuality": "<string assessment>",
+    "projectImpact": "<string assessment>",
+    "githubMention": <boolean>,
+    "internshipReadiness": "<string assessment>",
+    "placementReadiness": "<string assessment>"
+  },
+  "contentQuality": {
+    "score": <number 0-100>,
+    "actionVerbs": "<string assessment>",
+    "quantifiableImpact": "<string assessment>",
+    "achievementStatements": "<string assessment>",
+    "grammarQuality": "<string assessment>",
+    "clarity": "<string assessment>",
+    "readability": "<string assessment>"
+  },
+  "improvementRoadmap": {
+    "critical": [
+      { "problem": "<string>", "why": "<string>", "fix": "<string>" }
+    ],
+    "recommended": [
+      { "problem": "<string>", "why": "<string>", "fix": "<string>" }
+    ],
+    "niceToHave": [
+      { "problem": "<string>", "why": "<string>", "fix": "<string>" }
+    ]
+  },
+  "rewriteSuggestions": {
+    "betterSummary": "<string — rewritten professional summary>",
+    "betterProjectBullets": ["<string>", ...],
+    "betterExperienceBullets": ["<string>", ...]
+  },
+  "careerInsights": {
+    "bestMatchingRoles": [
+      { "role": "<string>", "matchPercent": <number 0-100> }
+    ],
+    "skillsGap": {
+      "currentSkills": ["<string>", ...],
+      "missingSkills": ["<string>", ...],
+      "recommendedSkills": ["<string>", ...]
+    },
+    "learningRoadmap": {
+      "thirtyDays": ["<string action item>", ...],
+      "sixtyDays": ["<string action item>", ...],
+      "ninetyDays": ["<string action item>", ...]
+    }
+  },
+  "finalRecommendation": "<string — one paragraph recruiter-style verdict>"
+}
 
-## 🌟 Core Strengths & Impact Analysis
-Identify the candidate's absolute strongest achievements. Break down why these metrics matter to recruiters. Elaborate on their leadership and technical indicators.
-
-## 🚩 Critical Gaps & Fatal Flaws
-Be brutally honest. Detail every weak bullet point, formatting flaw, missing context, and weak action verb. Explain *why* it will cause rejection.
-
-## 🔑 ATS Parsing & Keyword Gap Analysis
-List exactly which high-value hard/soft skills and industry-standard ATS keywords are missing for the target role. Explain how the absence of these keywords impacts ATS ranking.
-
-## 🛠️ Prioritized 90-Day Action Plan
-Give a highly detailed, 5-step concrete roadmap the candidate must execute immediately to dramatically improve their callback rate.
-
-## ✍️ Suggested Rewritten Professional Summary
-Provide a 3-4 sentence, extremely high-impact, keyword-rich rewritten summary section tailored specifically for their target role. Make it sound highly professional and elite.`,
-    userPrefix: "Please deeply review the following resume and target role information, and attach any uploaded files into your analysis:\n\n",
+Be thorough. Every array should have at least 2-3 items. Every score should be realistic and justified. Do NOT return anything outside the JSON object.`,
+    userPrefix: "Analyze the following resume and target role. Return ONLY valid JSON:\n\n",
   },
   "logo-design": {
     system: `You are a world-renowned creative director and brand identity architect. Your task is to conceptualize a comprehensive, production-grade visual brand identity and logo. You must be extremely elaborate, providing deep artistic rationale for every choice. Format your response strictly in markdown:
@@ -156,13 +229,15 @@ export async function executeSkill(
   }
 
   const suffix = slug === "code-review" ? "\n```" : "";
+  const tokenLimit = slug === "resume-review" ? 8192 : 2048;
 
   const result = await aiComplete({
     systemPrompt: prompts.system,
     userPrompt: prompts.userPrefix + input + suffix,
     fileData,
-    maxTokens: 2048,
+    maxTokens: tokenLimit,
   });
 
   return result.content;
 }
+

@@ -10,6 +10,7 @@ import CreatorCTA from './components/CreatorCTA';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
 import TransactionsPage from './pages/TransactionsPage';
+import ResumeReviewPage from './pages/ResumeReviewPage';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -35,11 +36,13 @@ export default function App() {
       
       {currentView === 'transactions' ? (
         <TransactionsPage />
+      ) : currentView === 'resume-review' ? (
+        <ResumeReviewPage onViewChange={setCurrentView} />
       ) : (
         <main>
           <Hero />
           <Stats />
-          <Marketplace onToast={showToast} />
+          <Marketplace onToast={showToast} onViewChange={setCurrentView} />
           <AgentMode onToast={showToast} />
           <CreatorCTA onToast={showToast} />
         </main>
@@ -50,3 +53,4 @@ export default function App() {
     </div>
   );
 }
+

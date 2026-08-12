@@ -17,7 +17,7 @@ const getCategoryIcon = (category) => {
 
 const CATEGORIES = ['All skills', 'Career', 'Design', 'Development', 'Productivity', 'Research'];
 
-export default function Marketplace({ onToast }) {
+export default function Marketplace({ onToast, onViewChange }) {
   const [skillsData, setSkillsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +60,11 @@ export default function Marketplace({ onToast }) {
   };
 
   const handleUseSkill = (skill) => {
+    if (skill.slug === 'resume-review' && onViewChange) {
+      onViewChange('resume-review');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setSelectedSkill(skill);
   };
 
