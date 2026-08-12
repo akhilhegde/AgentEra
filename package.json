@@ -1,7 +1,6 @@
 {
   "name": "agenthub",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "description": "AgentHub — AI Skill Marketplace with x402 Agentic Payments on Algorand",
   "workspaces": [
@@ -12,7 +11,7 @@
     "dev:api": "npm run dev -w apps/api",
     "dev:web": "npm run dev -w apps/web",
     "dev": "npm run dev:api & npm run dev:web",
-    "build": "npm run build -w packages/shared && npm run build -w apps/api && npm run build -w apps/web"
+    "build": "npm run build -w packages/shared && npm run build -w apps/api && npm run build -w apps/web && npx esbuild apps/api/src/vercel.ts --bundle --platform=node --target=node20 --outfile=api/index.js --format=cjs"
   },
   "dependencies": {
     "hono": "^4.13.1"
