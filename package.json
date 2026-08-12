@@ -1,6 +1,7 @@
 {
   "name": "agenthub",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "description": "AgentHub — AI Skill Marketplace with x402 Agentic Payments on Algorand",
   "workspaces": [
