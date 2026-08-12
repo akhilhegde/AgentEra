@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { reconnectSession } from './services/peraWallet';
 import Topline from './components/Topline';
 import Header from './components/Header';

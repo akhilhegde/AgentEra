@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 
 export type TransactionStepStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -17,7 +16,7 @@ interface TransactionProgressProps {
 export default function TransactionProgress({ steps }: TransactionProgressProps) {
   return (
     <div className="transaction-progress">
-      {steps.map((step, index) => (
+      {steps.map((step) => (
         <div key={step.id} className={`progress-step ${step.status}`}>
           <div className="step-indicator">
             {step.status === 'success' && <CheckCircle2 size={16} className="text-green" />}
