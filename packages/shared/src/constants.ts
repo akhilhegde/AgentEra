@@ -18,7 +18,7 @@ export const SKILL_CATEGORIES = [
   { id: "Coding", label: "Coding", icon: "💻", color: "#6366f1" },
   { id: "Career", label: "Career", icon: "💼", color: "#8b5cf6" },
   { id: "Writing", label: "Writing", icon: "✍️", color: "#ec4899" },
-  { id: "Research", label: "Research", icon: "🔬", color: "#14b8a6" },
+
   { id: "Business", label: "Business", icon: "📊", color: "#f59e0b" },
   { id: "Design", label: "Design", icon: "🎨", color: "#ef4444" },
   { id: "Education", label: "Education", icon: "📚", color: "#22c55e" },

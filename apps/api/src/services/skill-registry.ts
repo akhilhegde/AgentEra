@@ -29,29 +29,6 @@ const skills: Skill[] = [
     icon: "📄",
   },
   {
-    id: "logo-designer",
-    name: "Logo Design",
-    slug: "logo-design",
-    description:
-      "AI generates comprehensive brand identity concepts, visual logo directions, curated color palettes, typography, and image-generation prompts.",
-    category: "Design",
-    price: "0.02",
-    currency: "USDC",
-    provider: "AgentEra Labs",
-    endpoint: "/api/skills/logo-design",
-    inputSchema: {
-      type: "text-area",
-      label: "Brand name & design preferences",
-      placeholder: "Enter brand name, industry, style, colors, and description...",
-      maxLength: 5000,
-    },
-    outputSchema: { type: "markdown" },
-    rating: 4.8,
-    usageCount: 1420,
-    status: "active",
-    icon: "🎨",
-  },
-  {
     id: "code-reviewer",
     name: "Code Review",
     slug: "code-review",
@@ -75,74 +52,73 @@ const skills: Skill[] = [
     icon: "🔍",
   },
   {
-    id: "ppt-generator",
-    name: "PPT Generator",
-    slug: "ppt-generator",
-    description:
-      "AI structures complete presentation slide decks slide-by-slide with titles, bullet points, speaker notes, and suggested visuals.",
+    id: "ppt-content-generator",
+    name: "PPT Content Generation",
+    slug: "ppt-content-generation",
+    description: "Generate presentation slides content structured into titles and bullet points.",
     category: "Productivity",
-    price: "0.03",
+    price: "0.01",
     currency: "USDC",
     provider: "AgentEra Labs",
-    endpoint: "/api/skills/ppt-generator",
+    endpoint: "/api/skills/ppt-content-generation",
     inputSchema: {
-      type: "text-area",
-      label: "Presentation topic & details",
-      placeholder: "Enter topic, slide count, target audience, and purpose...",
-      maxLength: 5000,
+      type: "multi-input",
+      label: "Presentation Details",
+      placeholder: "",
+      fields: [
+        { id: "topic", label: "Topic Name", placeholder: "e.g., The Future of AI Agents", type: "text" },
+        { id: "slides", label: "Number of Slides", placeholder: "e.g., 5", type: "number" }
+      ]
     },
-    outputSchema: { type: "markdown" },
-    rating: 4.7,
-    usageCount: 940,
+    outputSchema: { type: "json" },
+    rating: 4.8,
+    usageCount: 150,
     status: "active",
     icon: "📊",
   },
   {
-    id: "research-assistant",
-    name: "Research Skill",
-    slug: "research",
-    description:
-      "AI synthesizes deep topic inquiries into structured research reports with executive summaries, key findings, analysis, and trade-off evaluations.",
-    category: "Research",
+    id: "code-converter",
+    name: "Code Converter",
+    slug: "code-converter",
+    description: "Convert your code from one programming language to another with high accuracy and idiomatic patterns.",
+    category: "Coding",
     price: "0.02",
     currency: "USDC",
     provider: "AgentEra Labs",
-    endpoint: "/api/skills/research",
+    endpoint: "/api/skills/code-converter",
     inputSchema: {
-      type: "text-area",
-      label: "Research topic & core questions",
-      placeholder: "Enter research topic, target questions, and audience...",
-      maxLength: 8000,
+      type: "multi-input",
+      label: "Conversion Details",
+      placeholder: "",
+      fields: [
+        { 
+          id: "sourceLanguage", 
+          label: "Source Language", 
+          placeholder: "Select source language...", 
+          type: "select",
+          options: ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin", "PHP", "Ruby", "Other"]
+        },
+        { 
+          id: "targetLanguage", 
+          label: "Target Language", 
+          placeholder: "Select target language...", 
+          type: "select",
+          options: ["JavaScript", "TypeScript", "Python", "Java", "C++", "C#", "Go", "Rust", "Swift", "Kotlin", "PHP", "Ruby", "Other"]
+        },
+        {
+          id: "code",
+          label: "Your Code",
+          placeholder: "Paste the code you want to convert here...",
+          type: "textarea"
+        }
+      ]
     },
     outputSchema: { type: "markdown" },
     rating: 4.8,
-    usageCount: 1650,
+    usageCount: 420,
     status: "active",
-    icon: "🧠",
-  },
-  {
-    id: "interview-prep",
-    name: "Interview Skill",
-    slug: "interview-prep",
-    description:
-      "AI creates personalized interview preparation strategies with tailored technical, behavioral, and HR questions with STAR-format answers.",
-    category: "Career",
-    price: "0.01",
-    currency: "USDC",
-    provider: "AgentEra Labs",
-    endpoint: "/api/skills/interview-prep",
-    inputSchema: {
-      type: "text-area",
-      label: "Job role & experience level",
-      placeholder: "Enter target job role, company/industry, experience, and key skills...",
-      maxLength: 8000,
-    },
-    outputSchema: { type: "markdown" },
-    rating: 4.9,
-    usageCount: 2100,
-    status: "active",
-    icon: "🎯",
-  },
+    icon: "🔄",
+  }
 ];
 
 /** Custom skills added by developers */

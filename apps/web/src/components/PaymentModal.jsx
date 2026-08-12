@@ -6,14 +6,44 @@ import { useWalletStore } from '../stores/wallet.store';
 import { sendUsdc } from '../services/transactions';
 import TransactionProgress from './TransactionProgress';
 import ReactMarkdown from 'react-markdown';
+import pptxgen from "pptxgenjs";
+
+const renderJsonOutput = (contentStr, skillSlug) => {
+  try {
+    let rawStr = contentStr;
+    if (rawStr.startsWith("```json")) {
+      rawStr = rawStr.replace(/```json\n?/, "").replace(/```$/, "");
+    }
+    const data = JSON.parse(rawStr);
+    
+    if (skillSlug === "ppt-content-generation" && data.slides) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {data.slides.map((slide, index) => (
+            <div key={index} style={{ background: '#1a1a3e50', padding: '20px', borderRadius: '12px', border: '1px solid #2d2d5e' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', marginBottom: '12px' }}>Slide {index + 1}: {slide.title}</h4>
+              <ul style={{ paddingLeft: '20px', color: '#cbd5e1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {slide.content?.map((bullet, i) => (
+                  <li key={i} style={{ lineHeight: '1.5' }}>{bullet}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return <pre style={{ padding: '16px', background: '#0f0f23', borderRadius: '12px', overflowX: 'auto', fontSize: '12px', border: '1px solid #2d2d5e', color: '#cbd5e1' }}>{JSON.stringify(data, null, 2)}</pre>;
+  } catch (e) {
+    return <pre style={{ padding: '16px', background: '#0f0f23', borderRadius: '12px', overflowX: 'auto', fontSize: '12px', border: '1px solid #2d2d5e', color: '#cbd5e1' }}>{contentStr}</pre>;
+  }
+};
 
 const getCategoryIcon = (category) => {
   const cat = category?.toLowerCase() || '';
   if (cat.includes('career')) return <Briefcase size={24} />;
   if (cat.includes('design')) return <PenTool size={24} />;
   if (cat.includes('development')) return <Layers3 size={24} />;
-  if (cat.includes('productivity')) return <FileText size={24} />;
-  if (cat.includes('research')) return <Compass size={24} />;
+
   if (cat.includes('data')) return <Database size={24} />;
   return <Sparkles size={24} />;
 };
@@ -21,21 +51,12 @@ const getCategoryIcon = (category) => {
 const SAMPLE_INPUTS = {
   "resume-review":
     "Target Role: Senior Full-Stack Engineer (FinTech / Blockchain)\n\nResume Summary:\nSenior Software Engineer with 5+ years of experience building scalable Web3 applications, React frontends, and Node.js microservices. Led a team of 4 engineers to launch a decentralized payment protocol on Algorand processing $100k daily volume.",
-  "logo-design":
-    "Brand Name: AgentEra\nIndustry: AI & Blockchain Infrastructure\nPreferred Style: Minimalist Futuristic Tech\nPreferred Colors: Indigo (#6366F1), Emerald (#10B981), Obsidian (#0F172A)\nSlogan: Pay only for the skill you use\nDescription: A sleek, modern logo featuring a stylized geometric 'A' intertwined with a neural network node and blockchain link.",
-  "code-review":
-    "Language: TypeScript\nExpected Behavior: Safely calculate item totals and handle missing price fields.\n\nCode:\nfunction calculateTotal(items) {\n  let total = 0;\n  for (var i = 0; i < items.length; i++) {\n    total += items[i].price;\n  }\n  return total;\n}",
-  "ppt-generator":
-    "Topic: x402 Micropayments for Autonomous AI Agents\nSlide Count: 5 slides\nTarget Audience: Web3 Investors & AI Developers\nPurpose: Pitching AgentEra at a Web3 Hackathon Demo\nPreferred Style: Clean Dark Glassmorphism",
-  "research":
-    "Research Topic: HTTP 402 Payment Required Protocol in AI Agent Ecosystems\nCore Questions: How does x402 differ from traditional SaaS subscriptions? What are the latency and fee advantages of Algorand for sub-cent AI micropayments?\nDepth: Comprehensive Analysis\nTarget Audience: Technical Co-founders and Protocol Engineers",
-  "interview-prep":
-    "Job Role: Principal Frontend Architect\nCompany / Industry: Decentralized Finance (DeFi) Platform\nExperience Level: Senior (7+ years)\nKey Skills: React 19, TypeScript, Web3 Signers, Performance Optimization, Micro-frontends",
 };
 
 export default function PaymentModal({ skill, onClose, onToast }) {
   const { isConnected, address, hasUsdcOptIn, usdcBalance, algoBalance } = useWalletStore();
   const [input, setInput] = useState(SAMPLE_INPUTS[skill.slug || skill.id] || '');
+  const [multiInputValues, setMultiInputValues] = useState({});
   const [fileData, setFileData] = useState(null);
   const [fileName, setFileName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,6 +80,32 @@ export default function PaymentModal({ skill, onClose, onToast }) {
 
   const handleDownload = () => {
     if (!resultData || !resultData.result || !resultData.result.content) return;
+
+    if (skill?.slug === "ppt-content-generation") {
+      try {
+        let contentStr = resultData.result.content;
+        if (contentStr.startsWith("```json")) {
+          contentStr = contentStr.replace(/```json\n?/, "").replace(/```$/, "");
+        }
+        const data = JSON.parse(contentStr);
+        const pptx = new pptxgen();
+        if (data.slides) {
+          data.slides.forEach((slideData) => {
+            const slide = pptx.addSlide();
+            slide.addText(slideData.title, { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 24, bold: true, color: '363636' });
+            if (slideData.content && slideData.content.length > 0) {
+              const bullets = slideData.content.map((c) => ({ text: c, options: { bullet: true } }));
+              slide.addText(bullets, { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: '666666' });
+            }
+          });
+        }
+        pptx.writeFile({ fileName: `${skill.slug}-presentation.pptx` });
+      } catch (e) {
+        console.error("Failed to generate PPTX", e);
+      }
+      return;
+    }
+
     const blob = new Blob([resultData.result.content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -161,7 +208,11 @@ export default function PaymentModal({ skill, onClose, onToast }) {
       ];
       setProgressSteps([...currentSteps]);
 
-      const data = await executeSkillWithPayment(skill.id, input, txId, fileData);
+      const finalInput = skill.inputSchema?.type === "multi-input" 
+        ? Object.entries(multiInputValues).map(([k, v]) => `${k}: ${v}`).join("\n") 
+        : input;
+
+      const data = await executeSkillWithPayment(skill.id, finalInput, txId, fileData);
       
       if (data.success && data.result) {
         currentSteps = [
@@ -209,7 +260,8 @@ export default function PaymentModal({ skill, onClose, onToast }) {
       return;
     }
 
-    if (!input.trim()) return;
+    const isMultiInputReady = skill?.inputSchema?.type === "multi-input" && skill?.inputSchema.fields?.every(f => multiInputValues[f.id]?.trim());
+    if (!input.trim() && !isMultiInputReady) return;
 
     return handleWalletPaymentFlow();
   };
@@ -266,15 +318,54 @@ export default function PaymentModal({ skill, onClose, onToast }) {
               )}
             </div>
 
-            <textarea
-              className="skill-input-area"
-              rows={8}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={`Enter prompt or details for ${skill.name}...`}
-              disabled={loading}
-              style={{ padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
-            />
+            {skill.inputSchema?.type === "multi-input" && skill.inputSchema.fields ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
+                {skill.inputSchema.fields.map(field => (
+                  <div key={field.id}>
+                    <label style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '4px', display: 'block' }}>{field.label}</label>
+                    {field.type === "textarea" ? (
+                      <textarea 
+                        value={multiInputValues[field.id] || ""}
+                        onChange={(e) => setMultiInputValues({...multiInputValues, [field.id]: e.target.value})}
+                        placeholder={field.placeholder}
+                        disabled={loading}
+                        rows={6}
+                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #2d2d5e', background: '#0f0f23', color: '#fff', fontSize: '14px', resize: 'vertical' }}
+                      />
+                    ) : field.type === "select" ? (
+                      <select
+                        value={multiInputValues[field.id] || ""}
+                        onChange={(e) => setMultiInputValues({...multiInputValues, [field.id]: e.target.value})}
+                        disabled={loading}
+                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #2d2d5e', background: '#0f0f23', color: '#fff', fontSize: '14px' }}
+                      >
+                        <option value="" disabled>{field.placeholder || "Select..."}</option>
+                        {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <input 
+                        type={field.type}
+                        value={multiInputValues[field.id] || ""}
+                        onChange={(e) => setMultiInputValues({...multiInputValues, [field.id]: e.target.value})}
+                        placeholder={field.placeholder}
+                        disabled={loading}
+                        style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #2d2d5e', background: '#0f0f23', color: '#fff', fontSize: '14px' }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                className="skill-input-area"
+                rows={8}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={`Enter prompt or details for ${skill.name}...`}
+                disabled={loading}
+                style={{ padding: '16px', fontSize: '15px', lineHeight: '1.6' }}
+              />
+            )}
 
             <div className="file-upload-container" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <label htmlFor="skill-file-upload" className="btn-secondary" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '6px 12px' }}>
@@ -375,7 +466,11 @@ export default function PaymentModal({ skill, onClose, onToast }) {
                 <Sparkles size={15} /> <span>{skill.name} Result</span>
               </div>
               <div className="output-content markdown-body" style={{ whiteSpace: 'normal', lineHeight: '1.6', fontSize: '15px', fontFamily: 'Inter, sans-serif', overflowY: 'auto', maxHeight: '55vh', padding: '16px', background: '#0a0d16', borderRadius: '12px', border: '1px solid #1c2436' }}>
-                <ReactMarkdown>{resultData.result.content}</ReactMarkdown>
+                {skill.outputSchema?.type === "json" ? (
+                  renderJsonOutput(resultData.result.content, skill.slug)
+                ) : (
+                  <ReactMarkdown>{resultData.result.content}</ReactMarkdown>
+                )}
               </div>
             </div>
           </div>
@@ -391,7 +486,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
               <button
                 className="btn-confirm-pay"
                 onClick={handleConfirmAndPay}
-                disabled={loading || !input.trim()}
+                disabled={loading || (!input.trim() && !(skill.inputSchema?.type === "multi-input" && skill.inputSchema.fields?.every(f => multiInputValues[f.id]?.trim())))}
               >
                 {loading ? (
                   <>
@@ -407,7 +502,7 @@ export default function PaymentModal({ skill, onClose, onToast }) {
           ) : (
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn-secondary" onClick={handleDownload} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Download size={16} /> Download Report
+                <Download size={16} /> {skill.slug === "ppt-content-generation" ? "Download PPTX" : "Download Report"}
               </button>
               <button className="btn-confirm-pay" onClick={onClose}>
                 Done

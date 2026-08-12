@@ -8,7 +8,7 @@ export type SkillCategory =
   | "Design"
   | "Development"
   | "Productivity"
-  | "Research"
+
   | "Coding"
   | "Writing"
   | "Business"
@@ -38,10 +38,17 @@ export interface Skill {
 
 /** Input schema for a skill */
 export interface SkillInputSchema {
-  type: "text" | "file" | "text-area";
+  type: "text" | "file" | "text-area" | "multi-input";
   label: string;
   placeholder: string;
   maxLength?: number;
+  fields?: { 
+    id: string; 
+    label: string; 
+    placeholder: string; 
+    type: "text" | "number" | "select" | "textarea";
+    options?: string[];
+  }[];
 }
 
 /** Output schema for a skill */

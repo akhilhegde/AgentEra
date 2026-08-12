@@ -9,13 +9,12 @@ const getCategoryIcon = (category) => {
   if (cat.includes('career')) return <Briefcase size={20} />;
   if (cat.includes('design')) return <PenTool size={20} />;
   if (cat.includes('development')) return <Layers3 size={20} />;
-  if (cat.includes('productivity')) return <FileText size={20} />;
-  if (cat.includes('research')) return <Compass size={20} />;
+
   if (cat.includes('data')) return <Database size={20} />;
   return <Sparkles size={20} />;
 };
 
-const CATEGORIES = ['All skills', 'Career', 'Design', 'Development', 'Productivity', 'Research'];
+const CATEGORIES = ['All skills', 'Career', 'Design', 'Development', 'Productivity'];
 
 export default function Marketplace({ onToast, onViewChange }) {
   const [skillsData, setSkillsData] = useState([]);
