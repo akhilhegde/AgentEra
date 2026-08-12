@@ -11,7 +11,7 @@
   "dependencies": {
     "@agenthub/shared": "*",
     "@google/genai": "^1.0.0",
-    "@hono/node-server": "^1.13.0",
+    "@hono/node-server": "^1.19.17",
     "@x402-avm/avm": "^2.6.1",
     "@x402-avm/core": "^2.6.1",
     "@x402-avm/hono": "^2.6.1",
