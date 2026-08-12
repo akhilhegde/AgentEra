@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { reconnectSession } from './services/peraWallet';
 import Topline from './components/Topline';
 import Header from './components/Header';
@@ -33,7 +33,7 @@ export default function App() {
     <div className="app" id="top">
       <Topline />
       <Header onToast={showToast} onViewChange={setCurrentView} currentView={currentView} />
-      
+
       {currentView === 'transactions' ? (
         <TransactionsPage />
       ) : currentView === 'resume-review' ? (

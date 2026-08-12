@@ -21,13 +21,14 @@ export const optInToUsdc = async (senderAddress: string) => {
 
   try {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
-    
+
     // Convert Uint8Array to format acceptable by algod
+    const txId = optInTxn.txID().toString();
     const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
-    
+
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);
-    
+
     return confirmedTxId;
   } catch (error) {
     console.error("Error opting into USDC:", error);
@@ -40,7 +41,7 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
   const peraWallet = getPeraWallet();
 
   const suggestedParams = await algodClient.getTransactionParams().do();
-  
+
   // Convert price string to micro USDC (6 decimals)
   const amount = Math.floor(parseFloat(amountStr) * 1_000_000);
 
@@ -62,12 +63,13 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
 
   try {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
-    
+
+    const txId = transferTxn.txID().toString();
     const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
-    
+
     // Wait for confirmation
     await algosdk.waitForConfirmation(algodClient, confirmedTxId, 4);
-    
+
     return confirmedTxId;
   } catch (error) {
     console.error("Error sending USDC:", error);

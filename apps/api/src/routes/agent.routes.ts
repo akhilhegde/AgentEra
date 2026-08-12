@@ -39,8 +39,11 @@ agentRoutes.post("/execute", async (c) => {
     const skill = getSkillById(step.skillId);
     if (!skill) continue;
 
-    const port = process.env.API_PORT || "3001";
-    const url = `http://localhost:${port}${skill.endpoint}`;
+    // Build the internal URL for the x402-protected endpoint
+    const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL 
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` 
+      : (c.req.header("origin") || new URL(c.req.url).origin);
+    const url = `${origin}${skill.endpoint}`;
 
     // Build context-aware input
     const input = `${query}\n\nContext: This is step ${step.order} of a multi-skill agent plan. The user's original request: "${query}"${context ? `\nAdditional context: ${context}` : ""}`;

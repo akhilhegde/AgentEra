@@ -73,8 +73,11 @@ apiRoutes.post("/execute", async (c) => {
   }
 
   // Build the internal URL for the x402-protected endpoint
-  const port = process.env.API_PORT || "3001";
-  const internalUrl = `http://localhost:${port}${skill.endpoint}`;
+  // Use VERCEL_PROJECT_PRODUCTION_URL if available, otherwise fallback to request origin
+  const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL 
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` 
+    : (c.req.header("origin") || new URL(c.req.url).origin);
+  const internalUrl = `${origin}${skill.endpoint}`;
 
   console.log(`🎯 Executing skill: ${skill.name} via x402 proxy → ${internalUrl}`);
 
