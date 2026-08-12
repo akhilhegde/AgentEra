@@ -179,6 +179,17 @@ export default function PaymentModal({ skill, onClose, onToast }) {
          return;
       }
 
+      if (!config.receiverAddress) {
+         currentSteps = [
+           ...currentSteps.slice(0, 1),
+           { id: 'check', label: 'Configuration Error', status: 'error', message: 'RECEIVER_ADDRESS is missing on the server.' }
+         ];
+         setProgressSteps(currentSteps);
+         setError('Server configuration error: RECEIVER_ADDRESS is missing. Please add it to your Vercel Environment Variables.');
+         setLoading(false);
+         return;
+      }
+
       currentSteps = [
         ...currentSteps.slice(0, 1),
         { id: 'check', label: 'Balances Verified', status: 'success' },
