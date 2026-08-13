@@ -25,7 +25,11 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin) => {
+      if (!origin || origin.includes("localhost") || origin === process.env.FRONTEND_URL) return origin || "";
+      if (origin.endsWith('.vercel.app')) return origin;
+      return process.env.FRONTEND_URL || "http://localhost:5173";
+    },
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["PAYMENT-RESPONSE", "PAYMENT-REQUIRED"],
