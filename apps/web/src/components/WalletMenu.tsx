@@ -30,7 +30,7 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
       alert("You need at least 0.101 ALGO to opt into USDC (0.1 for minimum balance requirement + 0.001 for transaction fee). Please fund your wallet using the TestNet faucet first.");
       return;
     }
-
+    
     setIsOptingIn(true);
     try {
       await optInToUsdc(address);
@@ -53,16 +53,16 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
           {network}
         </div>
       </div>
-
+      
       <div className="wallet-menu-body">
         <div className="address-container">
           <span>{shortAddress}</span>
           <button onClick={handleCopy} title="Copy Address" className="icon-btn">
             <Copy size={14} />
           </button>
-          <a
-            href={`https://testnet.explorer.perawallet.app/address/${address}`}
-            target="_blank"
+          <a 
+            href={`https://testnet.explorer.perawallet.app/address/${address}`} 
+            target="_blank" 
             rel="noreferrer"
             className="icon-btn"
             title="View on Explorer"
@@ -81,8 +81,8 @@ export default function WalletMenu({ isOpen, onClose }: WalletMenuProps) {
             {hasUsdcOptIn ? (
               <div className="balance-value">{usdcBalance || '0.00'}</div>
             ) : (
-              <button
-                className="opt-in-btn"
+              <button 
+                className="opt-in-btn" 
                 onClick={handleOptIn}
                 disabled={isOptingIn}
               >

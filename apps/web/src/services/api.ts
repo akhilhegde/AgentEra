@@ -2,7 +2,7 @@
 // API Client — Frontend service layer
 // ===========================================
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = "/api";
 
 export interface Skill {
   id: string;
@@ -95,14 +95,6 @@ export async function executeSkill(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skillId, input, fileData }),
   });
-  
-  if (!res.ok) {
-    try {
-      return await res.json();
-    } catch {
-      return { success: false, error: `Server returned ${res.status}: ${res.statusText}` } as ErrorResponse;
-    }
-  }
   return res.json();
 }
 
@@ -118,13 +110,5 @@ export async function executeSkillWithPayment(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skillId, input, transactionId, fileData }),
   });
-
-  if (!res.ok) {
-    try {
-      return await res.json();
-    } catch {
-      return { success: false, error: `Server returned ${res.status} ${res.statusText}. The AI model might have timed out.` } as ErrorResponse;
-    }
-  }
   return res.json();
 }

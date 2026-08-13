@@ -139,10 +139,6 @@ export default function ResumeReviewPage({ onViewChange }: { onViewChange: (view
       if (parseFloat(algoBalance || "0") < 0.002) throw new Error("Insufficient ALGO for transaction fees.");
 
       setExecutionStep(2);
-      if (!config.receiverAddress) {
-        throw new Error('Server configuration error: RECEIVER_ADDRESS is missing. Please add it to your Vercel Environment Variables.');
-      }
-
       const txId = await sendUsdc(address!, config.receiverAddress, skill.price.toString(), skill.id);
 
       setExecutionStep(3);

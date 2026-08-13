@@ -25,7 +25,7 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: (origin) => origin || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     exposeHeaders: ["PAYMENT-RESPONSE", "PAYMENT-REQUIRED"],

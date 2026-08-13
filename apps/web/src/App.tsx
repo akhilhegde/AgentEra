@@ -33,7 +33,7 @@ export default function App() {
     <div className="app" id="top">
       <Topline />
       <Header onToast={showToast} onViewChange={setCurrentView} currentView={currentView} />
-
+      
       {currentView === 'transactions' ? (
         <TransactionsPage />
       ) : currentView === 'resume-review' ? (

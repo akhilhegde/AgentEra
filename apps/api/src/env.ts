@@ -6,14 +6,9 @@ import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-let currentDir = "";
-try {
-  // @ts-ignore
-  currentDir = typeof __dirname !== "undefined" ? __dirname : dirname(fileURLToPath(import.meta.url));
-} catch {
-  currentDir = process.cwd();
-}
-const envPath = resolve(currentDir, "..", "..", "..", ".env");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = resolve(__dirname, "..", "..", "..", ".env");
 const result = config({ path: envPath });
 
 if (result.error) {
