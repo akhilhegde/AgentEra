@@ -6,13 +6,15 @@ import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const envPath = resolve(__dirname, "..", "..", "..", ".env");
-const result = config({ path: envPath });
-
-if (result.error) {
-  console.warn(`⚠️  Could not load .env from ${envPath}:`, result.error.message);
-} else {
-  console.log(`✅ Loaded .env from ${envPath}`);
+try {
+  if (typeof import.meta.url === "string" && import.meta.url.startsWith("file:")) {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const envPath = resolve(__dirname, "..", "..", "..", ".env");
+    config({ path: envPath });
+  } else {
+    config();
+  }
+} catch (e) {
+  // In serverless environments (Vercel), environment variables are provided via process.env directly
 }
