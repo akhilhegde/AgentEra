@@ -25,10 +25,18 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin) => {
+      const allowedEnv = process.env.FRONTEND_URL;
+      if (!origin) return allowedEnv || "*";
+      if (allowedEnv && (allowedEnv === "*" || origin === allowedEnv)) return origin;
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:") || origin.endsWith(".vercel.app")) {
+        return origin;
+      }
+      return allowedEnv || origin;
+    },
     allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    exposeHeaders: ["PAYMENT-RESPONSE", "PAYMENT-REQUIRED"],
+    allowHeaders: ["Content-Type", "Authorization", "PAYMENT-SIGNATURE", "X-PAYMENT-SIGNATURE", "x-payment-signature"],
+    exposeHeaders: ["PAYMENT-RESPONSE", "PAYMENT-REQUIRED", "X-PAYMENT-REQUIRED", "x-payment-required"],
   })
 );
 
