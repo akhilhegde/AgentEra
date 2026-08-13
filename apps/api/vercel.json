@@ -1,8 +1,17 @@
 {
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.ts"
-    }
-  ]
+    "version": 2,
+    "buildCommand": "echo \"No build required\"",
+    "outputDirectory": "src",
+    "builds": [
+        {
+            "src": "src/index.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "src/index.ts"
+        }
+    ]
 }
