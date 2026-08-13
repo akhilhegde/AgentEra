@@ -73,9 +73,8 @@ apiRoutes.post("/execute", async (c) => {
   }
 
   // Build the internal URL for the x402-protected endpoint
-  const reqOrigin = new URL(c.req.url).origin;
-  const baseUrl = process.env.API_URL || reqOrigin;
-  const internalUrl = `${baseUrl}${skill.endpoint}`;
+  const port = process.env.API_PORT || "3001";
+  const internalUrl = `http://localhost:${port}${skill.endpoint}`;
 
   console.log(`🎯 Executing skill: ${skill.name} via x402 proxy → ${internalUrl}`);
 

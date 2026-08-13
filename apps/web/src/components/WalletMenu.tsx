@@ -1,8 +1,9 @@
 import React from 'react';
-import { LogOut, Copy, ExternalLink } from 'lucide-react';
+import { LogOut, Copy, ExternalLink, Coins } from 'lucide-react';
 import { useWalletStore } from '../stores/wallet.store';
 import { disconnectWallet } from '../services/peraWallet';
 import { optInToUsdc } from '../services/transactions';
+import { USDC_ASA_ID } from '../services/algorand';
 
 interface WalletMenuProps {
   isOpen: boolean;

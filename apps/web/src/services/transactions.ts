@@ -23,6 +23,7 @@ export const optInToUsdc = async (senderAddress: string) => {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
     
     // Convert Uint8Array to format acceptable by algod
+    const txId = optInTxn.txID().toString();
     const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
     
     // Wait for confirmation
@@ -63,6 +64,7 @@ export const sendUsdc = async (senderAddress: string, receiverAddress: string, a
   try {
     const signedTxns = await peraWallet.signTransaction([singleTxnGroups]);
     
+    const txId = transferTxn.txID().toString();
     const { txid: confirmedTxId } = await algodClient.sendRawTransaction(signedTxns).do();
     
     // Wait for confirmation
